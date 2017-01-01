@@ -1,9 +1,11 @@
 import scrapy
 from scrapy.crawler import CrawlerProcess
+from scrapy.loader import ItemLoader
 import cfscrape
 from horriblesubs_batch_downloader import HorribleSubsBatchDownloader
 import os
 import simplejson
+from horriblesubs_show import Show
 
 
 class HorribleSubsShowsSpider(scrapy.spiders.CrawlSpider):
@@ -26,11 +28,19 @@ class HorribleSubsShowsSpider(scrapy.spiders.CrawlSpider):
         return cf_requests
 
     def parse(self, response):
+        # self.get_search_word()
         for show_div in response.css('div.ind-show'):
-            yield {
-                'title': show_div.css('a::text').extract_first(),
-                'url': show_div.css('a').xpath('@href').extract_first(),
-            }
+            show = ItemLoader(item=Show(), response=response)
+            show.add_value('name', show_div.css('a::text').extract_first())
+            show.add_value('url_extension', show_div.css('a').xpath('@href').extract_first())
+            yield show.load_item()
+            # yield {
+            #     'title': show_div.css('a::text').extract_first(),
+            #     'url': show_div.css('a').xpath('@href').extract_first(),
+            # }
+
+    def get_search_word(self):
+        search_word = input("Enter Anime name: ")
 
 
 def parse_shows_from_log_file(input_file_path, expected_keys=('url', 'title'), output_file_path=None,
@@ -87,17 +97,14 @@ def main():
         'USER_AGENT': '''Mozilla/5.0 (X11;
             Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36''',
         'LOG_STDOUT': False,
-        'LOG_FILE': log_file_path,
+        'LOG_FILE': None,
         }
 
     process = scrapy.crawler.CrawlerProcess(settings)
     process.crawl(HorribleSubsShowsSpider)
     process.start()
 
-    # parsed_shows_file_path = os.path.join(os.path.dirname(log_file_path), "shows-parsed.txt")
-    # create_new_file(parsed_shows_file_path)
-
-    shows = parse_shows_from_log_file(log_file_path)
+    # shows = parse_shows_from_log_file(log_file_path)
 
     # downloader = HorribleSubsBatchDownloader()
 
