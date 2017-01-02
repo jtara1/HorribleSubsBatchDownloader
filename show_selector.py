@@ -2,7 +2,7 @@ import simplejson
 from __builtin__ import enumerate
 
 
-class ShowsProcessor(object):
+class ShowSelector(object):
 
     horriblesubs_url = 'http://horriblesubs.info'
 
@@ -51,7 +51,7 @@ class ShowsProcessor(object):
             return self.matches[int(user_input)]
 
     def get_desired_show_url(self):
-        return ShowsProcessor.horriblesubs_url + self._desired_show['url_extension']
+        return ShowSelector.horriblesubs_url + self._desired_show['url_extension']
 
 
 class NoMatchingShowException(Exception):
@@ -61,6 +61,6 @@ class NoMatchingShowException(Exception):
 if __name__ == "__main__":
     import os
     file_path = os.path.join(os.getcwd(), 'tmp/shows.txt')
-    proc = ShowsProcessor(file_path, 'jojo')
+    proc = ShowSelector(file_path, 'jojo')
     print(proc._desired_show)
     print(proc.get_desired_show_url())
