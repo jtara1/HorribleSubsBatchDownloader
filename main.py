@@ -1,12 +1,15 @@
 import scrapy
 from scrapy.crawler import CrawlerProcess
 from scrapy.loader import ItemLoader
+from scrapy.exceptions import DropItem
 import cfscrape
 from horriblesubs_batch_downloader import HorribleSubsBatchDownloader
 import os
 import simplejson
 from horriblesubs_show import Show
 
+# global variables
+SEARCH_KEY_WORD = ""
 
 class HorribleSubsShowsSpider(scrapy.spiders.CrawlSpider):
     name = "hb_shows"
@@ -40,7 +43,32 @@ class HorribleSubsShowsSpider(scrapy.spiders.CrawlSpider):
             # }
 
     def get_search_word(self):
-        search_word = input("Enter Anime name: ")
+        global SEARCH_KEY_WORD
+        SEARCH_KEY_WORD = input("Enter Anime name: ")
+
+
+class ShowItemsPipeline(object):
+    """Filter shows returned by ShowsSpider parser so that we only have the shows that contain the key word search"""
+    def __init__(self):
+        self.matched_shows = []
+        self.file = None
+
+    def open_spider(self, spider):
+        self.file = open('shows.json', 'wb')
+
+    def close_spider(self, spider):
+        self.file.close()
+
+    def process_item(self, item, spider):
+        global SEARCH_KEY_WORD
+        if item['url_extension'] and SEARCH_KEY_WORD in item['url_extension']:
+            line = simplejson.dumps(dict(item)) + '\n'
+            print(line)
+            self.matched_shows.append(item)
+            self.file.write(line)
+            return item
+        else:
+            raise DropItem("{} does not match key word search".format(item['name']))
 
 
 def parse_shows_from_log_file(input_file_path, expected_keys=('url', 'title'), output_file_path=None,
@@ -90,21 +118,29 @@ def create_new_file(file_path):
 
 
 def main():
-    log_file_path = os.path.join(os.getcwd(), 'tmp/shows.txt')
-    create_new_file(log_file_path)
+    # get key word used to search shows
+    global SEARCH_KEY_WORD
+    SEARCH_KEY_WORD = raw_input("Enter Anime name: ")
+    print(SEARCH_KEY_WORD)
+
+    shows_file_path = os.path.join(os.getcwd(), 'tmp/shows.txt')
+    create_new_file(shows_file_path)
 
     settings = {
         'USER_AGENT': '''Mozilla/5.0 (X11;
             Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36''',
         'LOG_STDOUT': False,
         'LOG_FILE': None,
+        'ITEM_PIPELINES': {'main.ShowItemsPipeline': 100},
+        'FEED_URI': 'file:///' + shows_file_path,  # or 'stdout:'
+        'FEED_FORMAT': 'json',
         }
 
     process = scrapy.crawler.CrawlerProcess(settings)
     process.crawl(HorribleSubsShowsSpider)
     process.start()
 
-    # shows = parse_shows_from_log_file(log_file_path)
+    # shows = parse_shows_from_log_file(shows_file_path)
 
     # downloader = HorribleSubsBatchDownloader()
 
