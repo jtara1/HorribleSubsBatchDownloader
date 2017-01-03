@@ -67,8 +67,8 @@ class ShowSelector(object):
         print(message)
 
         user_input = raw_input("Enter number to select a show: ")
-        if not user_input.isdigit():
-            self._select_a_show_from_matches("You did not enter a digit.")
+        if not user_input.isdigit() or not int(user_input) in range(len(self.matches)):
+            return self._select_a_show_from_matches("You did not enter a proper digit.")
         else:
             return self.matches[int(user_input)]
 
