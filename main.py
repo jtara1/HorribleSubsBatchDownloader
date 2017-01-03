@@ -5,6 +5,15 @@ from show_selector import ShowSelector
 from episodes_scraper import HorribleSubsEpisodesScraper
 
 import os
+import sys
+
+
+def get_command_line_arguments():
+    """Returns all cli args joins with '-' char if there are any, otherwise returns the empty string"""
+    if len(sys.argv) > 1:
+        return "-".join(sys.argv[1:])
+    else:
+        return ""
 
 
 def main():
@@ -14,9 +23,15 @@ def main():
         with open(file_path, 'w') as f:
             f.write('')
 
-    # get key word used to search shows
-    search_key_word = raw_input("Enter anime to download from HorribleSubs: ")
+    # use cli args if provided
+    cli_args_concatenated = get_command_line_arguments()
+    if cli_args_concatenated:
+        search_key_word = cli_args_concatenated
+    else:
+        search_key_word = raw_input("Enter anime to download from HorribleSubs: ")
+
     # search_key_word = '91-days'
+    print("Searching for {} ...".format(search_key_word))
 
     # output file for shows spider
     shows_file_path = os.path.join(os.getcwd(), 'tmp/shows.txt')
