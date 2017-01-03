@@ -2,11 +2,15 @@ import simplejson
 from __builtin__ import enumerate
 
 
+class NoMatchingShowException(Exception):
+    pass
+
+
 class ShowSelector(object):
 
     horriblesubs_url = 'http://horriblesubs.info'
 
-    def __init__(self, shows_file, search_key_word):
+    def __init__(self, shows_file, search_key_word, debug=False):
         """Given a list of dictionaries with keys 'name' and 'url_extension' and a search_key_word,
         determine which show the user would like
         e.g. of show data: {"url_extension": "/shows/91-days", "name": "91 Days"}
@@ -14,6 +18,7 @@ class ShowSelector(object):
         :param shows_file: file containing shows (list of dictionaries)
         :param search_key_word: (string) used to select a show
         """
+        self.debug = debug
         self._file = open(shows_file)
         self.search_key_word = search_key_word
         self.matches = []  # matching shows
@@ -33,13 +38,17 @@ class ShowSelector(object):
                 new_word += letter
         self.search_key_word = new_word
 
+        if self.debug:
+            print("search_key_word = {}".format(new_word))
+
     def get_matching_show(self):
         """Iterates through all the shows and adds each match to self.matches then determines the desired show the user
         wants
         """
         all_shows = simplejson.load(self._file)
         for show in all_shows:
-            if show['url_extension'] and self.search_key_word in show['url_extension']:
+            print(show)
+            if 'url_extension' in show and self.search_key_word in show['url_extension']:
                 self.matches.append(show)
 
         # determine which show the user wanted
@@ -64,11 +73,7 @@ class ShowSelector(object):
             return self.matches[int(user_input)]
 
     def get_desired_show_url(self):
-        return ShowSelector.horriblesubs_url + self._desired_show['url_extension']
-
-
-class NoMatchingShowException(Exception):
-    pass
+        return self.horriblesubs_url + self._desired_show['url_extension']
 
 
 if __name__ == "__main__":

@@ -9,6 +9,10 @@ from bs4 import BeautifulSoup
 import subprocess
 
 
+class RegexFailedToMatch(Exception):
+    pass
+
+
 class HorribleSubsEpisodesScraper(object):
 
     episodes_url_template = 'http://horriblesubs.info/lib/getshows.php?type=show&showid={show_id}'
@@ -39,6 +43,10 @@ class HorribleSubsEpisodesScraper(object):
         self.parse_html(html)
 
     def get_show_id_from_url(self, show_url):
+        """Finds the show_id in the html using regex
+
+        :param show_url: url of the HorribleSubs show
+        """
         html = self.get_html(show_url)
         show_id_regex = r".*var hs_showid = (\d*)"
         match = re.match(show_id_regex, html, flags=re.DOTALL)
@@ -74,8 +82,6 @@ class HorribleSubsEpisodesScraper(object):
 
         episode_data_regex = re.compile(r".* - ([\d.]*) \[(\d*p)\]")  # grp 1 is ep. number, grp 2 is vid resolution
         for episode_div in all_episodes_divs:
-            # print(episode_div.prettify())
-            # episode_data_tag = episode_div.find(name='td', attr={'class': 'dl-label'})
             episode_data_tag = episode_div.find(name='i')
             episode_data_match = re.match(episode_data_regex, episode_data_tag.string)
 
@@ -106,12 +112,9 @@ class HorribleSubsEpisodesScraper(object):
         return episodes
 
     def download(self):
+        """Downloads every episode in self.episodes"""
         for episode in self.episodes:
             subprocess.call(['xdg-open', episode['magnet_url']])
-
-
-class RegexFailedToMatch(Exception):
-    pass
 
 
 if __name__ == "__main__":
