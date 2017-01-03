@@ -1,51 +1,76 @@
-'''I got tired of trying to figure out scrapy and what was going wrong with getting the https response so I'll use
-the requests and bs4 libraries instead
+'''
 __author__ = jtara1
 '''
-
 
 import re
 import cfscrape
 import requests
 from bs4 import BeautifulSoup
+import subprocess
 
 
 class HorribleSubsEpisodesScraper(object):
 
     episodes_url_template = 'http://horriblesubs.info/lib/getshows.php?type=show&showid={show_id}'
 
-    def __init__(self, show_id):
+    def __init__(self, show_id=None, show_url=None, debug=False):
         """Get the highest resolution magnet link of each episode of a show from HorribleSubs given a show id
 
         :param show_id: the integer HorribleSubs associates with a show - each show has a unique id (e.g.: 731)
         """
-        self.show_id = show_id
-        self.url = self.episodes_url_template.format(show_id=show_id)
+        self.debug = debug
 
-        self.html, self.episodes = None, None
-        self.get_html()
-        self.parse_html()
+        if not show_id and not show_url:
+            raise ValueError("either show_id or show_url is required")
+        elif show_url and not show_id:
+            self.show_id = self.get_show_id_from_url(show_url)
+        else:
+            if not isinstance(show_id, int) or not show_id.isdigit():
+                raise ValueError("Invalid show_id; expected an integer or string containing an integer")
+            self.show_id = show_id
 
-    def get_html(self):
+        url = self.episodes_url_template.format(show_id=self.show_id)
+        if self.debug:
+            print("show_id = {}".format(self.show_id))
+            print("url = {}".format(url))
+
+        html = self.get_html(url)
+        self.episodes = None
+        self.parse_html(html)
+
+    def get_show_id_from_url(self, show_url):
+        html = self.get_html(show_url)
+        show_id_regex = r".*var hs_showid = (\d*)"
+        match = re.match(show_id_regex, html, flags=re.DOTALL)
+
+        if not match:
+            raise RegexFailedToMatch
+
+        return match.group(1)
+
+    def get_html(self, url):
         """Make a request and get the html from the response"""
-        token, agent = cfscrape.get_tokens(url=self.url)
-        request = requests.get(self.url, headers={'User-Agent': agent}, cookies=token)
+        token, agent = cfscrape.get_tokens(url=url)
+        request = requests.get(url, headers={'User-Agent': agent}, cookies=token)
 
         if request.status_code != 200:
             raise requests.exception.HTTPError
 
-        self.html = request.text
+        if self.debug:
+            with open("HSEpisodesScraperHTML", 'w') as f:
+                f.write(request.text)
+
         return request.text
 
-    def parse_html(self):
+    def parse_html(self, html):
         """Extract episode number, video resolution, and magnet link for each episode found in the html"""
-        soup = BeautifulSoup(self.html)
+        soup = BeautifulSoup(html)
 
         episodes = []
         episodes_added = set()  # used to avoid getting duplicates of an episode
 
         all_episodes_divs = soup.find_all(name='div', attrs={'class': 'release-links'})
-        all_episodes_divs = reversed(all_episodes_divs)
+        all_episodes_divs = reversed(all_episodes_divs)  # reversed so the highest resolution ep comes first
 
         episode_data_regex = re.compile(r".* - ([\d.]*) \[(\d*p)\]")  # grp 1 is ep. number, grp 2 is vid resolution
         for episode_div in all_episodes_divs:
@@ -56,11 +81,11 @@ class HorribleSubsEpisodesScraper(object):
 
             if not episode_data_match:
                 # regex failed to find a match
-                raise NoEpisodeDataException
+                raise RegexFailedToMatch
 
             ep_number, vid_res = episode_data_match.group(1), episode_data_match.group(2)
 
-            # skips lower resolutions
+            # skips lower resolutions of an episode already added
             if ep_number in episodes_added:
                 continue
             episodes_added.add(ep_number)
@@ -74,15 +99,22 @@ class HorribleSubsEpisodesScraper(object):
                 'magnet_url': magnet_url,
             })
 
-        # print(episodes)
+        if self.debug:
+            for ep in episodes:
+                print(ep)
         self.episodes = episodes
         return episodes
 
+    def download(self):
+        for episode in self.episodes:
+            subprocess.call(['xdg-open', episode['magnet_url']])
 
-class NoEpisodeDataException(Exception):
+
+class RegexFailedToMatch(Exception):
     pass
 
 
 if __name__ == "__main__":
-    scraper = HorribleSubsEpisodesScraper(731)  # 91 days anime
-
+    # scraper = HorribleSubsEpisodesScraper(731)  # 91 days anime
+    scraper = HorribleSubsEpisodesScraper(show_url='http://horriblesubs.info/shows/91-days/', debug=True)
+    scraper.download()

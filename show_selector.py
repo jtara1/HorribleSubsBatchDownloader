@@ -9,6 +9,7 @@ class ShowSelector(object):
     def __init__(self, shows_file, search_key_word):
         """Given a list of dictionaries with keys 'name' and 'url_extension' and a search_key_word,
         determine which show the user would like
+        e.g. of show data: {"url_extension": "/shows/91-days", "name": "91 Days"}
 
         :param shows_file: file containing shows (list of dictionaries)
         :param search_key_word: (string) used to select a show
@@ -18,12 +19,24 @@ class ShowSelector(object):
         self.matches = []  # matching shows
         self._desired_show = None  # the show the user wants
 
+        self.process_search_key_word()
         self.get_matching_show()
         self._file.close()
 
+    def process_search_key_word(self):
+        """Replace spaces with hyphen, lowercase letters, and throw out non-alpha or non-digits"""
+        new_word = ""
+        self.search_key_word = self.search_key_word.lower().replace(" ", "-")
+
+        for letter in self.search_key_word:
+            if letter.isalpha() or letter.isdigit() or letter == '-':
+                new_word += letter
+        self.search_key_word = new_word
+
     def get_matching_show(self):
         """Iterates through all the shows and adds each match to self.matches then determines the desired show the user
-        wants"""
+        wants
+        """
         all_shows = simplejson.load(self._file)
         for show in all_shows:
             if show['url_extension'] and self.search_key_word in show['url_extension']:

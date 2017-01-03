@@ -13,6 +13,7 @@ from show_selector import ShowSelector
 # from episode_spider import HorribleSubsEpisodesSpider
 from horriblesubs_episode import Episode
 from ninetyonedays_spider import NinetyOneDaysSpider  # debug
+from episodes_scraper import HorribleSubsEpisodesScraper
 
 import cfscrape
 import os
@@ -180,8 +181,8 @@ def create_new_file(file_path):
 def main():
     # get key word used to search shows
     global SEARCH_KEY_WORD
-    # SEARCH_KEY_WORD = raw_input("Enter Anime name: ")
-    SEARCH_KEY_WORD = '91-days'
+    SEARCH_KEY_WORD = raw_input("Enter Anime name: ")
+    # SEARCH_KEY_WORD = '91-days'
     print(SEARCH_KEY_WORD)
 
     # output file for shows spider
@@ -224,19 +225,21 @@ def main():
         # shows spider
         yield runner.crawl(HorribleSubsShowsSpider)
 
-        # get url of show user searched for
-        show_selector = ShowSelector(shows_file=shows_file_path, search_key_word=SEARCH_KEY_WORD)
-        show_url = show_selector.get_desired_show_url()
-
         # episodes spider
-        runner.settings = episodes_spider_settings
+        # runner.settings = episodes_spider_settings
         # yield runner.crawl(HorribleSubsEpisodesSpider, show_url=show_url)
-        yield runner.crawl(NinetyOneDaysSpider)  # spider for a specific anime
+        # yield runner.crawl(NinetyOneDaysSpider)  # spider for a specific anime
         reactor.stop()
 
     crawl()
     reactor.run()
 
+    # get url of show user searched for
+    show_selector = ShowSelector(shows_file=shows_file_path, search_key_word=SEARCH_KEY_WORD)
+    show_url = show_selector.get_desired_show_url()
+
+    ep_scraper = HorribleSubsEpisodesScraper(show_url=show_url, debug=True)
+    ep_scraper.download()
     # shows = parse_shows_from_log_file(shows_file_path)
 
     # process2 = scrapy.crawler.CrawlerProcess(settings)
