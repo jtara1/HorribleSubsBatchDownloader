@@ -58,7 +58,9 @@ def main():
 
     # scrape the episodes and download all of them in the highest resolution available
     ep_scraper = HorribleSubsEpisodesScraper(show_url=show_url, debug=True)
-    ep_scraper.download()
+    user_input = raw_input("Press enter to proceed to download or [n]o to cancel: ")
+    if user_input == "":
+        ep_scraper.download()
 
 
 if __name__ == "__main__":
