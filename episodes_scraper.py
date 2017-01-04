@@ -7,6 +7,7 @@ import cfscrape
 import requests
 from bs4 import BeautifulSoup
 import subprocess
+import platform
 
 
 class RegexFailedToMatch(Exception):
@@ -113,8 +114,9 @@ class HorribleSubsEpisodesScraper(object):
 
     def download(self):
         """Downloads every episode in self.episodes"""
+        cli_tool = 'start' if platform.system() == 'Windows' else 'xdg-open'
         for episode in self.episodes:
-            subprocess.call(['xdg-open', episode['magnet_url']])
+            subprocess.call([cli_tool, episode['magnet_url']])
 
 
 if __name__ == "__main__":
