@@ -81,7 +81,7 @@ class HorribleSubsEpisodesScraper(object):
         all_episodes_divs = soup.find_all(name='div', attrs={'class': 'release-links'})
         all_episodes_divs = reversed(all_episodes_divs)  # reversed so the highest resolution ep comes first
 
-        episode_data_regex = re.compile(r".* - ([\d.]*) \[(\d*p)\]")  # grp 1 is ep. number, grp 2 is vid resolution
+        episode_data_regex = re.compile(r".* - ([\d.v]*) \[(\d*p)\]")  # grp 1 is ep. number, grp 2 is vid resolution
         for episode_div in all_episodes_divs:
             episode_data_tag = episode_div.find(name='i')
             episode_data_match = re.match(episode_data_regex, episode_data_tag.string)
