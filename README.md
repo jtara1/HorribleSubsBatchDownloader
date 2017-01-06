@@ -5,6 +5,7 @@ Often times I find that HorribleSubs does not upload a single torrent containing
 This scraper will search all their shows given a search word (via command line or after prompt during program execution), and download all
 episodes of the desired show in the highest resolution available.
 
+
 ### Requirements
 
 ##### Python 2.7
@@ -16,7 +17,9 @@ episodes of the desired show in the highest resolution available.
 
 ##### `xdg-open`
 
+##### Software that can download content from a magnet link (e.g.: transmission, tixati, etc.)
 
-#### Useful Stackoverflow questions
 
-[scrape dynamic content from a webpage that uses ajax](http://stackoverflow.com/a/24373576/3854436)
+### Demo video
+
+https://youtu.be/RO-QuZEFP3Q
