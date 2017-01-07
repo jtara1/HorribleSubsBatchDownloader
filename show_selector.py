@@ -17,6 +17,7 @@ class ShowSelector(object):
 
         :param shows_file: file containing shows (list of dictionaries)
         :param search_key_word: (string) used to select a show
+        :param debug: if true, prints additional info
         """
         self.debug = debug
         self._file = open(shows_file)

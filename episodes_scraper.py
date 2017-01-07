@@ -65,10 +65,6 @@ class HorribleSubsEpisodesScraper(object):
         if request.status_code != 200:
             raise requests.exception.HTTPError
 
-        if self.debug:
-            with open("HSEpisodesScraperHTML", 'w') as f:
-                f.write(request.text)
-
         return request.text
 
     def parse_html(self, html):

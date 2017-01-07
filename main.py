@@ -1,11 +1,13 @@
 from scrapy.crawler import CrawlerProcess
 
+from settings import main_settings
 from shows_spider import HorribleSubsShowsSpider
 from show_selector import ShowSelector
 from episodes_scraper import HorribleSubsEpisodesScraper
 
 import os
 import sys
+import time
 
 
 def get_command_line_arguments():
@@ -14,6 +16,17 @@ def get_command_line_arguments():
         return "-".join(sys.argv[1:])
     else:
         return ""
+
+
+def get_age_of_file(file):
+    """Returns how much time has passed since the file's creation time in hours"""
+    try:
+        file_stats = os.stat(file)
+        file_age = time.time() - file_stats.st_ctime  # time in seconds
+        return file_age / 3600
+    except IOError:  # FileDoesNotFoundException for python 3
+        return sys.maxsize
+
 
 
 def main():
@@ -35,22 +48,26 @@ def main():
 
     # output file for shows spider
     shows_file_path = os.path.join(os.getcwd(), 'tmp/shows.txt')
-    create_new_file(shows_file_path)
+    file_age = get_age_of_file(shows_file_path)
 
-    settings = {
-        'USER_AGENT': '''Mozilla/5.0 (X11;
-            Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36''',
-        'LOG_STDOUT': False,
-        'LOG_FILE': None,
-        # 'ITEM_PIPELINES': {'horriblesubs_shows_spider.PrintItemsPipeline': 100},
-        'FEED_URI': 'file:///' + shows_file_path,
-        'FEED_FORMAT': 'json',
-        }
+    # the file containing the list of shows does not exist or is expired
+    if file_age > main_settings['show_list_expiration']:
+        create_new_file(shows_file_path)
 
-    # start crawling with the shows spider
-    process = CrawlerProcess(settings)
-    process.crawl(HorribleSubsShowsSpider)
-    process.start()
+        scrapy_settings = {
+            'USER_AGENT': '''Mozilla/5.0 (X11;
+                Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36''',
+            'LOG_STDOUT': False,
+            'LOG_FILE': None,
+            # 'ITEM_PIPELINES': {'horriblesubs_shows_spider.PrintItemsPipeline': 100},
+            'FEED_URI': 'file:///' + shows_file_path,
+            'FEED_FORMAT': 'json',
+            }
+
+        # start crawling with the shows spider
+        process = CrawlerProcess(scrapy_settings)
+        process.crawl(HorribleSubsShowsSpider)
+        process.start()
 
     # get url of show user searched for
     show_selector = ShowSelector(shows_file=shows_file_path, search_key_word=search_key_word)

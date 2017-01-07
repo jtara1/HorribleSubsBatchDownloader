@@ -15,7 +15,7 @@ episodes of the desired show in the highest resolution available.
 * cfscrape
 * scrapy
 
-##### `xdg-open`
+##### `xdg-open` if using Unix
 
 ##### Software that can download content from a magnet link (e.g.: transmission, tixati, etc.)
 
