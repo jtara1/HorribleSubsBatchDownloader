@@ -16,13 +16,18 @@ class RegexFailedToMatch(Exception):
 
 class HorribleSubsEpisodesScraper(object):
 
-    episodes_url_template = 'http://horriblesubs.info/lib/getshows.php?type=show&showid={show_id}'
+    episodes_url_template = 'http://horriblesubs.info/lib/getshows.php?type=show&showid={show_id}'  # vars: show_id
+    episodes_page_url_template = episodes_url_template + '&nextid={page_number}&_'  # vars: show_id, page_number
 
-    def __init__(self, show_id=None, show_url=None, debug=False):
+    def __init__(self, show_id=None, show_url=None, verbose=True, debug=False):
         """Get the highest resolution magnet link of each episode of a show from HorribleSubs given a show id
 
         :param show_id: the integer HorribleSubs associates with a show - each show has a unique id (e.g.: 731)
+        :param show_url: the url of show from HorribleSubs (e.g.: http://horriblesubs.info/shows/91-days)
+        :param verbose: if True prints additional information
+        :param debug: if True prints additional more information
         """
+        self.verbose = verbose
         self.debug = debug
 
         if not show_id and not show_url:
@@ -40,7 +45,8 @@ class HorribleSubsEpisodesScraper(object):
             print("url = {}".format(url))
 
         html = self.get_html(url)
-        self.episodes = None
+        self.episodes = []
+        self.episodes_page_number = 1
         self.parse_html(html)
 
     def get_show_id_from_url(self, show_url):
@@ -77,7 +83,7 @@ class HorribleSubsEpisodesScraper(object):
         all_episodes_divs = soup.find_all(name='div', attrs={'class': 'release-links'})
         all_episodes_divs = reversed(all_episodes_divs)  # reversed so the highest resolution ep comes first
 
-        episode_data_regex = re.compile(r".* - ([\d.v]*) \[(\d*p)\]")  # grp 1 is ep. number, grp 2 is vid resolution
+        episode_data_regex = re.compile(r".* - ([.\da-zA-Z]*) \[(\d*p)\]")  # grp 1 is ep. number, grp 2 is vid resolution
         for episode_div in all_episodes_divs:
             episode_data_tag = episode_div.find(name='i')
             episode_data_match = re.match(episode_data_regex, episode_data_tag.string)
@@ -105,8 +111,22 @@ class HorribleSubsEpisodesScraper(object):
         if self.debug:
             for ep in episodes:
                 print(ep)
-        self.episodes = episodes
-        return episodes
+        self.episodes.extend(episodes)
+
+        # get next page of episodes and call this method again with next page html
+        next_page_html = self.get_html(
+            self.episodes_page_url_template.format(
+                show_id=self.show_id,
+                page_number=self.episodes_page_number
+            )
+        )
+        # if there's more episodes on the next page for this anime / show
+        if next_page_html != 'DONE':
+            self.episodes_page_number += 1
+            self.parse_html(next_page_html)  # recursive call
+        else:
+            print("\nNumber of episodes: {}".format(len(self.episodes)))
+            return self.episodes
 
     def download(self):
         """Downloads every episode in self.episodes"""
