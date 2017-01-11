@@ -1,9 +1,11 @@
-from scrapy.crawler import CrawlerProcess
+# from scrapy.crawler import CrawlerProcess
 
 from settings import main_settings
-from shows_spider import HorribleSubsShowsSpider
+# from shows_spider import HorribleSubsShowsSpider
+from shows_scraper import ShowsScraper
 from show_selector import ShowSelector
 from episodes_scraper import HorribleSubsEpisodesScraper
+
 
 import os
 import sys
@@ -65,9 +67,12 @@ def main():
             }
 
         # start crawling with the shows spider
-        process = CrawlerProcess(scrapy_settings)
-        process.crawl(HorribleSubsShowsSpider)
-        process.start()
+        # process = CrawlerProcess(scrapy_settings)
+        # process.crawl(HorribleSubsShowsSpider)
+        # process.start()
+
+        shows_scraper = ShowsScraper()
+        shows_scraper.save_shows_to_file(file=shows_file_path)
 
     # get url of show user searched for
     show_selector = ShowSelector(shows_file=shows_file_path, search_key_word=search_key_word)
