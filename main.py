@@ -6,7 +6,6 @@ from shows_scraper import ShowsScraper
 from show_selector import ShowSelector
 from episodes_scraper import HorribleSubsEpisodesScraper
 
-
 import os
 import sys
 import time
