@@ -24,6 +24,11 @@ def get_age_of_file(file):
     python_version = sys.version[0]
     FileNotFoundException = OSError if python_version == '2' else FileNotFoundException
     try:
+        # the file is empty
+        with open(file, 'r') as f:
+            if f.read() == '':
+                return sys.maxsize
+
         file_stats = os.stat(file)
         file_age = time.time() - file_stats.st_ctime  # time in seconds
         return file_age / 3600
@@ -71,7 +76,7 @@ def main():
         # process.crawl(HorribleSubsShowsSpider)
         # process.start()
 
-        shows_scraper = ShowsScraper()
+        shows_scraper = ShowsScraper(debug=True)
         shows_scraper.save_shows_to_file(file=shows_file_path)
 
     # get url of show user searched for

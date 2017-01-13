@@ -3,13 +3,18 @@ import requests
 from base_scraper import BaseScraper
 from bs4 import BeautifulSoup
 import os
+import json
+
 
 class ShowsScraper(BaseScraper):
 
     shows_url = "http://horriblesubs.info/shows/"
 
-    def __init__(self):
+    def __init__(self, debug=False, verbose=True):
         """When this object is created, the list of shows is scraped"""
+        self.debug = debug
+        self.verbose = verbose
+
         html = self.get_html(self.shows_url)
         self.shows = self.parse_list_of_shows(html)
 
@@ -23,7 +28,7 @@ class ShowsScraper(BaseScraper):
         shows = []
 
         for show_div in soup.find_all(name='div', attrs={'class': 'ind-show linkful'}):
-            print(show_div)
+            # print(show_div)
             # show.add_value('name', shows_div.css('a::text').extract_first())
             show_name = show_div.a.string
             # show.add_value('url_extension', shows_div.css('a').xpath('@href').extract_first())
@@ -33,10 +38,12 @@ class ShowsScraper(BaseScraper):
                     'url_extension': url_extension
                 }
             )
+            if self.debug:
+                print(shows[-1])
 
         return shows
 
-    def save_shows_to_file(file=os.path.join(os.getcwd(), '/tmp/shows.json')):
+    def save_shows_to_file(self, file=os.path.join(os.getcwd(), '/tmp/shows.json')):
         with open(file, 'w') as f:
             f.write(json.dumps(self.shows))
 
