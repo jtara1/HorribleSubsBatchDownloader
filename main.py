@@ -1,7 +1,4 @@
-# from scrapy.crawler import CrawlerProcess
-
 from settings import main_settings
-# from shows_spider import HorribleSubsShowsSpider
 from shows_scraper import ShowsScraper
 from show_selector import ShowSelector
 from episodes_scraper import HorribleSubsEpisodesScraper
@@ -22,7 +19,7 @@ def get_command_line_arguments():
 def get_age_of_file(file):
     """Returns how much time has passed since the file's creation time in hours"""
     python_version = sys.version[0]
-    FileNotFoundException = OSError if python_version == '2' else FileNotFoundException
+    FileNotFoundException = IOError if python_version == '2' else FileNotFoundException
     try:
         # the file is empty
         with open(file, 'r') as f:
@@ -37,6 +34,9 @@ def get_age_of_file(file):
 
 
 def main():
+    """Get anime name to from command line args or ask user for show name, scrape the list of shows from HS, scrape the
+    magnet links of each episode, and open each link with OS default program that opens magnet links
+    """
     def create_new_file(file_path):
         if not os.path.isdir(os.path.dirname(file_path)):
             os.makedirs(os.path.dirname(file_path))
@@ -50,7 +50,6 @@ def main():
     else:
         search_key_word = raw_input("Enter anime to download from HorribleSubs: ")
 
-    # search_key_word = '91-days'
     print("Searching for {} ...".format(search_key_word))
 
     # output file for shows spider
@@ -60,22 +59,6 @@ def main():
     # the file containing the list of shows does not exist or is expired
     if file_age > main_settings['show_list_expiration']:
         create_new_file(shows_file_path)
-
-        scrapy_settings = {
-            'USER_AGENT': '''Mozilla/5.0 (X11;
-                Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36''',
-            'LOG_STDOUT': False,
-            'LOG_FILE': None,
-            # 'ITEM_PIPELINES': {'horriblesubs_shows_spider.PrintItemsPipeline': 100},
-            'FEED_URI': 'file:///' + shows_file_path,
-            'FEED_FORMAT': 'json',
-            }
-
-        # start crawling with the shows spider
-        # process = CrawlerProcess(scrapy_settings)
-        # process.crawl(HorribleSubsShowsSpider)
-        # process.start()
-
         shows_scraper = ShowsScraper(debug=True)
         shows_scraper.save_shows_to_file(file=shows_file_path)
 

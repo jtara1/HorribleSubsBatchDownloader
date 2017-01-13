@@ -1,7 +1,3 @@
-'''
-__author__ = jtara1
-'''
-
 import re
 import cfscrape
 import requests

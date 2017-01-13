@@ -28,7 +28,8 @@ __transmission__, __tixati__, __BitTorrent__, etc.)
 ##### Modules
 
 * cfscrape
-* scrapy
+* requests
+* bs4
 
 
 ### Usage
