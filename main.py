@@ -21,13 +21,14 @@ def get_command_line_arguments():
 
 def get_age_of_file(file):
     """Returns how much time has passed since the file's creation time in hours"""
+    python_version = sys.version[0]
+    FileNotFoundException = OSError if python_version == '2' else FileNotFoundException
     try:
         file_stats = os.stat(file)
         file_age = time.time() - file_stats.st_ctime  # time in seconds
         return file_age / 3600
-    except IOError:  # FileDoesNotFoundException for python 3
+    except FileNotFoundException:
         return sys.maxsize
-
 
 
 def main():
