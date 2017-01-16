@@ -5,11 +5,11 @@ import requests
 class BaseScraper(object):
 
     def get_html(self, url):
-        """Make a request and get the html from the response"""
+        """Make a request and get the html (text) from the response"""
         token, agent = cfscrape.get_tokens(url=url)
-        request = requests.get(url, headers={'User-Agent': agent}, cookies=token)
+        response = requests.get(url, headers={'User-Agent': agent}, cookies=token)
 
-        if request.status_code != 200:
+        if response.status_code != 200:
             raise requests.exception.HTTPError
 
-        return request.text
+        return response.text

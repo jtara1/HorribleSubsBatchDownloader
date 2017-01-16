@@ -1,16 +1,15 @@
 import re
-import cfscrape
-import requests
 from bs4 import BeautifulSoup
 import subprocess
 import platform
+from base_scraper import BaseScraper
 
 
 class RegexFailedToMatch(Exception):
     pass
 
 
-class HorribleSubsEpisodesScraper(object):
+class HorribleSubsEpisodesScraper(BaseScraper):
 
     episodes_url_template = 'http://horriblesubs.info/lib/getshows.php?type=show&showid={show_id}'  # vars: show_id
     episodes_page_url_template = episodes_url_template + '&nextid={page_number}&_'  # vars: show_id, page_number
@@ -58,16 +57,6 @@ class HorribleSubsEpisodesScraper(object):
             raise RegexFailedToMatch
 
         return match.group(1)
-
-    def get_html(self, url):
-        """Make a request and get the html from the response"""
-        token, agent = cfscrape.get_tokens(url=url)
-        request = requests.get(url, headers={'User-Agent': agent}, cookies=token)
-
-        if request.status_code != 200:
-            raise requests.exception.HTTPError
-
-        return request.text
 
     def parse_html(self, html):
         """Extract episode number, video resolution, and magnet link for each episode found in the html"""
