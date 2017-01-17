@@ -3,6 +3,7 @@ from __builtin__ import enumerate
 
 
 class NoMatchingShowException(Exception):
+    """Exception for when no show could be matched"""
     pass
 
 

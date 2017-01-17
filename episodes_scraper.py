@@ -6,6 +6,7 @@ from base_scraper import BaseScraper
 
 
 class RegexFailedToMatch(Exception):
+    """One of the regex used to parse html failed to match anything"""
     pass
 
 
