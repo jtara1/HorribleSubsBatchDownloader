@@ -20,7 +20,7 @@ found
 
 ### Requirements
 
-* Python 2.7
+* Python 2.7 or Python 3
 * `xdg-open` if using Unix
 * Software that can download content from a magnet link (e.g.:
 __transmission__, __tixati__, __BitTorrent__, etc.)
