@@ -1,3 +1,4 @@
+import sys
 import json
 
 
@@ -9,6 +10,7 @@ class NoMatchingShowException(Exception):
 class ShowSelector(object):
 
     horriblesubs_url = 'http://horriblesubs.info'
+    py_version = sys.version[0]
 
     def __init__(self, shows_file, search_key_word, debug=False):
         """Given a list of dictionaries with keys 'name' and 'url_extension' and a search_key_word,
@@ -67,7 +69,8 @@ class ShowSelector(object):
             print("[" + str(counter) + "] " + show['name'])
         print(message)
 
-        user_input = raw_input("Enter number to select a show: ")
+        msg_for_user_input = "Enter number to select a show: "
+        user_input = raw_input(msg_for_user_input) if self.py_version == '2' else input(msg_for_user_input)
         if not user_input.isdigit() or not int(user_input) in range(len(self.matches)):
             return self._select_a_show_from_matches("You did not enter a proper digit.")
         else:

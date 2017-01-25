@@ -18,8 +18,8 @@ def get_command_line_arguments():
 
 def get_age_of_file(file):
     """Returns how much time has passed since the file's creation time in hours"""
-    python_version = sys.version[0]
-    FileNotFoundException = IOError if python_version == '2' else FileNotFoundException
+    # python_version = sys.version[0]
+    # FileNotFoundException = IOError if python_version == '2' else FileNotFoundException
     try:
         # the file is empty
         with open(file, 'r') as f:
@@ -29,8 +29,8 @@ def get_age_of_file(file):
         file_stats = os.stat(file)
         file_age = time.time() - file_stats.st_ctime  # time in seconds
         return file_age / 3600
-    except FileNotFoundException:
-        return sys.maxsize
+    except IOError:  # file does not exist
+        return sys.maxsize  # largest number value
 
 
 def main():
@@ -43,12 +43,16 @@ def main():
         with open(file_path, 'w') as f:
             f.write('')
 
+    py_version = sys.version[0]
+
     # use cli args if provided
     cli_args_concatenated = get_command_line_arguments()
     if cli_args_concatenated:
         search_key_word = cli_args_concatenated
     else:
-        search_key_word = raw_input("Enter anime to download from HorribleSubs: ")
+        # search_key_word = raw_input("Enter anime to download from HorribleSubs: ")
+        msg_for_user_input = "Enter anime to download from HorribleSubs: "
+        search_key_word = raw_input(msg_for_user_input) if py_version == '2' else input(msg_for_user_input)
 
     print("Searching for {} ...".format(search_key_word))
 
@@ -68,7 +72,9 @@ def main():
 
     # scrape the episodes and download all of them in the highest resolution available
     ep_scraper = HorribleSubsEpisodesScraper(show_url=show_url, debug=True)
-    user_input = raw_input("Press enter to proceed to download or [n]o to cancel: ")
+    # user_input = raw_input("Press enter to proceed to download or [n]o to cancel: ")
+    msg_for_user_input = "Press enter to proceed to download or [n]o to cancel: "
+    user_input = raw_input(msg_for_user_input) if py_version == '2' else input(msg_for_user_input)
     if user_input == "":
         ep_scraper.download()
 
