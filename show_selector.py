@@ -1,5 +1,4 @@
-import simplejson
-from __builtin__ import enumerate
+import json
 
 
 class NoMatchingShowException(Exception):
@@ -47,7 +46,7 @@ class ShowSelector(object):
         """Iterates through all the shows and adds each match to self.matches then determines the desired show the user
         wants
         """
-        all_shows = simplejson.load(self._file)
+        all_shows = json.load(self._file)
         for show in all_shows:
             print(show)
             if 'url_extension' in show and self.search_key_word in show['url_extension']:
