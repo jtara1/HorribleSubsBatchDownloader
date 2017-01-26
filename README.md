@@ -30,6 +30,8 @@ __transmission__, __tixati__, __BitTorrent__, etc.)
 * cfscrape
 * requests
 * bs4
+* lxml
+* json
 
 
 ### Usage

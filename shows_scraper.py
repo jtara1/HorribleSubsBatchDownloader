@@ -24,7 +24,7 @@ class ShowsScraper(BaseScraper):
 
         :param html: the html retrieved from the webpage, `this.shows_url`
         """
-        soup = BeautifulSoup(html)
+        soup = BeautifulSoup(html, 'lxml')
         shows = []
 
         for show_div in soup.find_all(name='div', attrs={'class': 'ind-show linkful'}):

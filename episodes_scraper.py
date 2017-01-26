@@ -61,7 +61,7 @@ class HorribleSubsEpisodesScraper(BaseScraper):
 
     def parse_html(self, html):
         """Extract episode number, video resolution, and magnet link for each episode found in the html"""
-        soup = BeautifulSoup(html)
+        soup = BeautifulSoup(html, 'lxml')
 
         episodes = []
         episodes_added = set()  # used to avoid getting duplicates of an episode
