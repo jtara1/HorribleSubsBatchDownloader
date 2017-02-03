@@ -34,6 +34,11 @@ __transmission__, __tixati__, __BitTorrent__, etc.)
 * json
 
 
+### Install
+
+1. Download / clone this repo
+2. Install required modules with `pip install -r requirements.txt`
+
 ### Usage
 
 Run `main.py` to run the program, and optionally enter anime name
