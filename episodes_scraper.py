@@ -43,8 +43,15 @@ class HorribleSubsEpisodesScraper(BaseScraper):
 
         html = self.get_html(url)
         self.episodes = []
-        self.episodes_page_number = 1
-        self.parse_html(html)
+        self.episode_data_regex = re.compile(
+            r".* - ([.\da-zA-Z]*) \[(\d*p)\]")  # grp 1 is ep. number, grp 2 is vid resolution
+        self.episodes_page_number = 0
+        # self.parse_html(html)
+        self.parse_all_in_parallel()
+
+        if self.debug:
+            for ep in self.episodes:
+                print(ep)
 
     def get_show_id_from_url(self, show_url):
         """Finds the show_id in the html using regex
@@ -63,10 +70,10 @@ class HorribleSubsEpisodesScraper(BaseScraper):
     def parse_all_in_parallel(self):
         next_page_html = self._get_next_page_html(increment_page_number=False)
         while next_page_html != "DONE":
-            thread = threading.Thread(name="ep_parse_" + self.episodes_page_number,
-                                      worker=self.parse_html,
-                                      args=next_page_html)
-            thread.run()
+            thread = threading.Thread(name="ep_parse_" + str(self.episodes_page_number),
+                                      target=self.parse_episodes,
+                                      args=(next_page_html,))
+            thread.start()
             next_page_html = self._get_next_page_html()
 
     def _get_next_page_html(self, increment_page_number=True):
@@ -79,6 +86,36 @@ class HorribleSubsEpisodesScraper(BaseScraper):
             )
         )
         return next_page_html
+
+    def parse_episodes(self, html):
+        soup = BeautifulSoup(html, 'lxml')
+
+        all_episodes_divs = soup.find_all(name='div', attrs={'class': 'release-links'})
+        all_episodes_divs = reversed(all_episodes_divs)  # reversed so the highest resolution ep comes first
+
+        # iterate through each episode html div
+        for episode_div in all_episodes_divs:
+            episode_data_tag = episode_div.find(name='i')
+            episode_data_match = re.match(self.episode_data_regex, episode_data_tag.string)
+
+            if not episode_data_match:
+                # regex failed to find a match
+                raise RegexFailedToMatch
+
+            ep_number, vid_res = episode_data_match.group(1), episode_data_match.group(2)
+
+            # skips lower resolutions of an episode already added
+            if True in map(lambda e: e["episode_number"] == ep_number, self.episodes):
+                continue
+
+            magnet_tag = episode_div.find(name='td', attrs={'class': 'hs-magnet-link'})
+            magnet_url = magnet_tag.a.attrs['href']
+
+            self.episodes.append({
+                'episode_number': ep_number,
+                'video_resolution': vid_res,
+                'magnet_url': magnet_url,
+            })
 
     def parse_html(self, html):
         """Extract episode number, video resolution, and magnet link for each episode found in the html"""
@@ -145,4 +182,5 @@ class HorribleSubsEpisodesScraper(BaseScraper):
 if __name__ == "__main__":
     # scraper = HorribleSubsEpisodesScraper(731)  # 91 days anime
     scraper = HorribleSubsEpisodesScraper(show_url='http://horriblesubs.info/shows/91-days/', debug=True)
+    # scraper = HorribleSubsEpisodesScraper(show_url='http://horriblesubs.info/shows/psycho-pass/', debug=True)
     scraper.download()
