@@ -176,7 +176,7 @@ class HorribleSubsEpisodesScraper(BaseScraper):
         """Downloads every episode in self.episodes"""
         cli_tool = 'start' if platform.system() == 'Windows' else 'xdg-open'
         for episode in self.episodes:
-            subprocess.call([cli_tool, episode['magnet_url']])
+            subprocess.call([cli_tool, '"' + episode['magnet_url'] + '"'])
 
 
 if __name__ == "__main__":
