@@ -2,6 +2,7 @@ import re
 from bs4 import BeautifulSoup
 import subprocess
 import platform
+import threading
 from base_scraper import BaseScraper
 
 
@@ -58,6 +59,26 @@ class HorribleSubsEpisodesScraper(BaseScraper):
             raise RegexFailedToMatch
 
         return match.group(1)
+
+    def parse_all_in_parallel(self):
+        next_page_html = self._get_next_page_html(increment_page_number=False)
+        while next_page_html != "DONE":
+            thread = threading.Thread(name="ep_parse_" + self.episodes_page_number,
+                                      worker=self.parse_html,
+                                      args=next_page_html)
+            thread.run()
+            next_page_html = self._get_next_page_html()
+
+    def _get_next_page_html(self, increment_page_number=True):
+        if increment_page_number:
+            self.episodes_page_number += 1
+        next_page_html = self.get_html(
+            self.episodes_page_url_template.format(
+                show_id=self.show_id,
+                page_number=self.episodes_page_number
+            )
+        )
+        return next_page_html
 
     def parse_html(self, html):
         """Extract episode number, video resolution, and magnet link for each episode found in the html"""
