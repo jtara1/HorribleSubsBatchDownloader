@@ -13,7 +13,8 @@ class RegexFailedToMatch(Exception):
 
 class HorribleSubsEpisodesScraper(BaseScraper):
 
-    episodes_url_template = 'http://horriblesubs.info/lib/getshows.php?type=show&showid={show_id}'  # vars: show_id
+    # vars: show_type (show or batch) and show_id
+    episodes_url_template = 'http://horriblesubs.info/lib/getshows.php?type={show_type}&showid={show_id}'
     episodes_page_url_template = episodes_url_template + '&nextid={page_number}&_'  # vars: show_id, page_number
 
     def __init__(self, show_id=None, show_url=None, verbose=True, debug=False):
@@ -50,7 +51,7 @@ class HorribleSubsEpisodesScraper(BaseScraper):
         self.parse_all_in_parallel()
 
         if self.debug:
-            for ep in self.episodes:
+            for ep in sorted(self.episodes, key=lambda d: d['episode_number']):
                 print(ep)
 
     def get_show_id_from_url(self, show_url):
@@ -76,11 +77,12 @@ class HorribleSubsEpisodesScraper(BaseScraper):
             thread.start()
             next_page_html = self._get_next_page_html()
 
-    def _get_next_page_html(self, increment_page_number=True):
+    def _get_next_page_html(self, increment_page_number=True, show_type="show"):
         if increment_page_number:
             self.episodes_page_number += 1
         next_page_html = self.get_html(
             self.episodes_page_url_template.format(
+                show_type=show_type,
                 show_id=self.show_id,
                 page_number=self.episodes_page_number
             )
@@ -88,6 +90,10 @@ class HorribleSubsEpisodesScraper(BaseScraper):
         return next_page_html
 
     def parse_episodes(self, html):
+        """Sample of what regex will attemp to match (show and batch):
+            Naruto Shippuuden - 495 [1080p]
+            Naruto Shippuuden (80-426) [1080p]
+        """
         soup = BeautifulSoup(html, 'lxml')
 
         all_episodes_divs = soup.find_all(name='div', attrs={'class': 'release-links'})
@@ -180,7 +186,13 @@ class HorribleSubsEpisodesScraper(BaseScraper):
 
 
 if __name__ == "__main__":
+    # standard modern 12-13 ep. anime
     # scraper = HorribleSubsEpisodesScraper(731)  # 91 days anime
-    scraper = HorribleSubsEpisodesScraper(show_url='http://horriblesubs.info/shows/91-days/', debug=True)
+    # scraper = HorribleSubsEpisodesScraper(show_url='http://horriblesubs.info/shows/91-days/', debug=True)
+
+    # anime with extra editions of episodes
     # scraper = HorribleSubsEpisodesScraper(show_url='http://horriblesubs.info/shows/psycho-pass/', debug=True)
-    scraper.download()
+
+    # anime with 495 episodes
+    scraper = HorribleSubsEpisodesScraper(show_url='http://horriblesubs.info/shows/naruto-shippuuden', debug=True)
+    # scraper.download()
