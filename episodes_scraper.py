@@ -133,7 +133,7 @@ class HorribleSubsEpisodesScraper(BaseScraper):
                 # regex failed to find a match
                 raise RegexFailedToMatch
 
-            ep_number, vid_res = episode_data_match.group(1), episode_data_match.group(2)
+            ep_number, vid_res = int(episode_data_match.group(1)), episode_data_match.group(2)
 
             # skips lower resolutions of an episode already added
             if ep_number in self.episode_numbers_collected:
@@ -203,7 +203,7 @@ class HorribleSubsEpisodesScraper(BaseScraper):
         """
 
         :param episode_number:
-        :param episode_range: [list of integers]
+        :param episode_range: list of integers
         :param video_resolution:
         :param magnet_url:
         :return:
@@ -215,10 +215,10 @@ class HorribleSubsEpisodesScraper(BaseScraper):
         })
 
         if episode_range:
-            for ep_numb in episode_range:
-                self.episode_numbers_collected.add(ep_numb)
+            self.episode_numbers_collected.update(set(episode_range))
         else:
             self.episode_numbers_collected.add(episode_number)
+        # print(sorted(self.episode_numbers_collected))
 
     def get_most_recent_episode_number(self, url):
         html = self.get_html(url)
