@@ -21,9 +21,9 @@ class ShowType(Enum):
 
 class HorribleSubsEpisodesScraper(BaseScraper):
 
-    # vars: show_type (show or batch) and show_id
+    # vars in string template: show_type (show or batch) and show_id
     episodes_url_template = 'http://horriblesubs.info/lib/getshows.php?type={show_type}&showid={show_id}'
-    episodes_page_url_template = episodes_url_template + '&nextid={page_number}&_'  # vars: show_id, page_number
+    episodes_page_url_template = episodes_url_template + '&nextid={page_number}&_'  # additional vars: page_number
 
     def __init__(self, show_id=None, show_url=None, verbose=True, debug=False):
         """Get the highest resolution magnet link of each episode of a show from HorribleSubs given a show id
@@ -36,30 +36,53 @@ class HorribleSubsEpisodesScraper(BaseScraper):
         self.verbose = verbose
         self.debug = debug
 
+        # need a show_id or show_url
         if not show_id and not show_url:
             raise ValueError("either show_id or show_url is required")
+        # only show_url was given
         elif show_url and not show_id:
             self.show_id = self.get_show_id_from_url(show_url)
+        # use show_id over show_url if both are given or only show_id is given
         else:
             if not isinstance(show_id, int) or not show_id.isdigit():
                 raise ValueError("Invalid show_id; expected an integer or string containing an integer")
             self.show_id = show_id
 
-        url = self.episodes_url_template.format(show_type=ShowType.show.value, show_id=self.show_id)
+        # url that'll give us the webpage containing the magnet links of episodes or batches of episodes
+        url = self.episodes_url_template.format(show_type='show', show_id=self.show_id)
         if self.debug:
             print("show_id = {}".format(self.show_id))
             print("url = {}".format(url))
 
-        html = self.get_html(url)
-        self.episodes = []
+        # regex used to extract episode number(s) and video resolution
         self.episode_data_regex = re.compile(
             r".* - ([.\da-zA-Z]*) \[(\d*p)\]")  # grp 1 is ep. number, grp 2 is vid resolution
+        self.batch_episodes_data_regex = re.compile(
+            r".* \(([\d]*)-([\d]*)\) \[(\d*p)\]")  # grp 1 is 1st ep. of batch, grp 2 is last ep. of batch, grp 3 is res
+
+        # most recent ep. number used to help determine when we have scraped all episodes available
+        last_ep_number = self.get_most_recent_episode_number(url)
+        if self.debug:
+            print("most recent episode number: ", last_ep_number)
+        self.episodes_available = set(range(1, int(last_ep_number) + 1))
+
+        # html = self.get_html(url)
+        self.all_episodes_acquired = False
+        self.threads = []
+        self.episodes = []
+        self.episode_numbers_collected = set()
         self.episodes_page_number = 0
         # self.parse_html(html)
+
+        # begin the scraping of episodes
+        batch_episodes_url = self.episodes_url_template.format(show_type='batch', show_id=self.show_id)
+        self.parse_batch_episodes(self.get_html(url=batch_episodes_url))  # there shouldn't be more than 1 page of batch
         self.parse_all_in_parallel()
 
         if self.debug:
-            for ep in sorted(self.episodes, key=lambda d: d['episode_number']):
+            for ep in sorted(
+                    self.episodes,
+                    key=lambda d: d['episode_number'][-1] if isinstance(d['episode_number'], list) else int(d['episode_number'])):
                 print(ep)
 
     def get_show_id_from_url(self, show_url):
@@ -78,11 +101,13 @@ class HorribleSubsEpisodesScraper(BaseScraper):
 
     def parse_all_in_parallel(self):
         next_page_html = self._get_next_page_html(increment_page_number=False)
-        while next_page_html != "DONE":
+        while next_page_html != "DONE" and not self.all_episodes_acquired:
             thread = threading.Thread(name="ep_parse_" + str(self.episodes_page_number),
                                       target=self.parse_episodes,
                                       args=(next_page_html,))
             thread.start()
+            self.threads.append(thread)
+
             next_page_html = self._get_next_page_html()
 
     def _get_next_page_html(self, increment_page_number=True, show_type="show"):
@@ -116,23 +141,33 @@ class HorribleSubsEpisodesScraper(BaseScraper):
                 # regex failed to find a match
                 raise RegexFailedToMatch
 
-            ep_number, vid_res = episode_data_match.group(1), episode_data_match.group(2)
+            ep_number, vid_res = int(episode_data_match.group(1)), episode_data_match.group(2)
 
             # skips lower resolutions of an episode already added
-            if True in map(lambda e: e["episode_number"] == ep_number, self.episodes):
+            if ep_number in self.episode_numbers_collected:
                 continue
+            # if True in map(lambda e: e["episode_number"] == ep_number, self.episodes):
+            #     continue
 
             magnet_tag = episode_div.find(name='td', attrs={'class': 'hs-magnet-link'})
             magnet_url = magnet_tag.a.attrs['href']
 
-            self.episodes.append({
-                'episode_number': ep_number,
-                'video_resolution': vid_res,
-                'magnet_url': magnet_url,
-            })
+            self._add_episode(
+                episode_number=ep_number,
+                video_resolution=vid_res,
+                magnet_url=magnet_url)
 
-    def parse_html(self, html):
-        """Extract episode number, video resolution, and magnet link for each episode found in the html"""
+        if self.episode_numbers_collected == self.episodes_available:
+            self.all_episodes_acquired = True
+            # self.episodes.append({
+            #     'episode_number': ep_number,
+            #     'video_resolution': vid_res,
+            #     'magnet_url': magnet_url,
+            # })
+            #
+            # self.episode_numbers_collected.add(ep_number)
+
+    def parse_batch_episodes(self, html):
         soup = BeautifulSoup(html, 'lxml')
 
         episodes = []
@@ -141,50 +176,129 @@ class HorribleSubsEpisodesScraper(BaseScraper):
         all_episodes_divs = soup.find_all(name='div', attrs={'class': 'release-links'})
         all_episodes_divs = reversed(all_episodes_divs)  # reversed so the highest resolution ep comes first
 
-        episode_data_regex = re.compile(r".* - ([.\da-zA-Z]*) \[(\d*p)\]")  # grp 1 is ep. number, grp 2 is vid resolution
+        # iterate through each episode html div
         for episode_div in all_episodes_divs:
             episode_data_tag = episode_div.find(name='i')
-            episode_data_match = re.match(episode_data_regex, episode_data_tag.string)
+            episode_data_match = re.match(self.batch_episodes_data_regex, episode_data_tag.string)
 
             if not episode_data_match:
                 # regex failed to find a match
                 raise RegexFailedToMatch
 
-            ep_number, vid_res = episode_data_match.group(1), episode_data_match.group(2)
+            first_ep_number = episode_data_match.group(1)
+            last_ep_numb = episode_data_match.group(2)
+            vid_res = episode_data_match.group(3)
 
-            # skips lower resolutions of an episode already added
-            if ep_number in episodes_added:
+            episode_range = list(range(int(first_ep_number), int(last_ep_numb) + 1))
+
+            # skips lower resolutions
+            if True in map(lambda d: d["episode_number"] == episode_range, self.episodes):
                 continue
             episodes_added.add(ep_number)
 
             magnet_tag = episode_div.find(name='td', attrs={'class': 'hs-magnet-link'})
             magnet_url = magnet_tag.a.attrs['href']
 
-            episodes.append({
-                'episode_number': ep_number,
-                'video_resolution': vid_res,
-                'magnet_url': magnet_url,
-            })
+            self._add_episode(
+                episode_range=episode_range,
+                video_resolution=vid_res,
+                magnet_url=magnet_url)
+            # self.episodes.append({
+            #     'episode_number': ep_number,
+            #     'video_resolution': vid_res,
+            #     'magnet_url': magnet_url,
+            # })
+            #
+            # self.episode_numbers_collected.add(ep_number)
 
-        if self.debug:
-            for ep in episodes:
-                print(ep)
-        self.episodes.extend(episodes)
+    def _add_episode(self, episode_number=None, episode_range=None, video_resolution=None, magnet_url=None):
+        """
 
-        # get next page of episodes and call this method again with next page html
-        next_page_html = self.get_html(
-            self.episodes_page_url_template.format(
-                show_id=self.show_id,
-                page_number=self.episodes_page_number
-            )
-        )
-        # if there's more episodes on the next page for this anime / show
-        if next_page_html != 'DONE':
-            self.episodes_page_number += 1
-            self.parse_html(next_page_html)  # recursive call
+        :param episode_number:
+        :param episode_range: list of integers
+        :param video_resolution:
+        :param magnet_url:
+        :return:
+        """
+        self.episodes.append({
+            'episode_number': episode_range if episode_range else episode_number,
+            'video_resolution': video_resolution,
+            'magnet_url': magnet_url,
+        })
+
+        if episode_range:
+            self.episode_numbers_collected.update(set(episode_range))
         else:
-            print("\nNumber of episodes: {}".format(len(self.episodes)))
-            return self.episodes
+            self.episode_numbers_collected.add(episode_number)
+        # print(sorted(self.episode_numbers_collected))
+
+    def get_most_recent_episode_number(self, url):
+        html = self.get_html(url)
+        soup = BeautifulSoup(html, "lxml")
+
+        episode_div_tag = soup.find(name='div', attrs={"class": "release-links"})
+        text_tag = episode_div_tag.find(name="i")
+        regex_match = re.match(pattern=self.episode_data_regex, string=text_tag.string)
+
+        if not regex_match:
+            raise RegexFailedToMatch
+
+        return regex_match.group(1)
+
+    # def parse_html(self, html):
+    #     """Extract episode number, video resolution, and magnet link for each episode found in the html"""
+    #     soup = BeautifulSoup(html, 'lxml')
+    #
+    #     episodes = []
+    #     episodes_added = set()  # used to avoid getting duplicates of an episode
+    #
+    #     all_episodes_divs = soup.find_all(name='div', attrs={'class': 'release-links'})
+    #     all_episodes_divs = reversed(all_episodes_divs)  # reversed so the highest resolution ep comes first
+    #
+    #     episode_data_regex = re.compile(r".* - ([.\da-zA-Z]*) \[(\d*p)\]")  # grp 1 is ep. number, grp 2 is vid resolution
+    #     for episode_div in all_episodes_divs:
+    #         episode_data_tag = episode_div.find(name='i')
+    #         episode_data_match = re.match(episode_data_regex, episode_data_tag.string)
+    #
+    #         if not episode_data_match:
+    #             # regex failed to find a match
+    #             raise RegexFailedToMatch
+    #
+    #         ep_number, vid_res = episode_data_match.group(1), episode_data_match.group(2)
+    #
+    #         # skips lower resolutions of an episode already added
+    #         if ep_number in episodes_added:
+    #             continue
+    #         episodes_added.add(ep_number)
+    #
+    #         magnet_tag = episode_div.find(name='td', attrs={'class': 'hs-magnet-link'})
+    #         magnet_url = magnet_tag.a.attrs['href']
+    #
+    #         episodes.append({
+    #             'episode_number': ep_number,
+    #             'video_resolution': vid_res,
+    #             'magnet_url': magnet_url,
+    #         })
+    #
+    #     if self.debug:
+    #         for ep in episodes:
+    #             print(ep)
+    #     self.episodes.extend(episodes)
+    #
+    #     # get next page of episodes and call this method again with next page html
+    #     next_page_html = self.get_html(
+    #         self.episodes_page_url_template.format(
+    #             show_id=self.show_id,
+    #             page_number=self.episodes_page_number
+    #         )
+    #     )
+    #     # if there's more episodes on the next page for this anime / show
+    #     if next_page_html != 'DONE':
+    #         self.episodes_page_number += 1
+    #         self.parse_html(next_page_html)  # recursive call
+    #     else:
+    #         print("\nNumber of episodes: {}".format(len(self.episodes)))
+    #         return self.episodes
 
     def download(self):
         """Downloads every episode in self.episodes"""
