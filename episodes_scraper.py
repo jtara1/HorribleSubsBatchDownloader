@@ -3,12 +3,20 @@ from bs4 import BeautifulSoup
 import subprocess
 import platform
 import threading
+from enum import Enum
+
 from base_scraper import BaseScraper
 
 
 class RegexFailedToMatch(Exception):
     """One of the regex used to parse html failed to match anything"""
     pass
+
+
+class ShowType(Enum):
+    """Used to define one of the arguments passed in the request url for the scraper."""
+    SHOW = "show"
+    BATCH = "batch"
 
 
 class HorribleSubsEpisodesScraper(BaseScraper):
@@ -37,7 +45,7 @@ class HorribleSubsEpisodesScraper(BaseScraper):
                 raise ValueError("Invalid show_id; expected an integer or string containing an integer")
             self.show_id = show_id
 
-        url = self.episodes_url_template.format(show_id=self.show_id)
+        url = self.episodes_url_template.format(show_type=ShowType.show.value, show_id=self.show_id)
         if self.debug:
             print("show_id = {}".format(self.show_id))
             print("url = {}".format(url))
