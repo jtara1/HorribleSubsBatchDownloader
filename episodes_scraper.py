@@ -290,9 +290,18 @@ class HorribleSubsEpisodesScraper(BaseScraper):
 
     def download(self):
         """Downloads every episode in self.episodes"""
-        cli_tool = 'start' if platform.system() == 'Windows' else 'xdg-open'
+        if platform.system() == 'Windows':
+            cli_tool = 'start'
+            wrap_marks = '"'
+        else:
+            cli_tool = 'xdg-open'
+            wrap_marks = ''
+
         for episode in self.episodes:
-            subprocess.call([cli_tool, '"' + episode['magnet_url'] + '"'])
+            subprocess.call([cli_tool,
+                             "{wrap_marks}{url}{wrap_marks}".format(wrap_marks=wrap_marks,
+                                                                    url=episode['magnet_url'])
+                             ])
 
 
 if __name__ == "__main__":
