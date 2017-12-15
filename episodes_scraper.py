@@ -1,3 +1,5 @@
+import sys
+import subprocess
 import os
 import re
 from bs4 import BeautifulSoup
@@ -259,7 +261,11 @@ class HorribleSubsEpisodesScraper(BaseScraper):
     def download(self):
         """Downloads every episode in self.episodes"""
         for episode in self.episodes:
-            os.startfile(episode['magnet_url'])
+            if sys.platform == "win32" or sys.platform == "cygwin":
+                os.startfile(episode['magnet_url'])
+            else:
+                opener = "open" if sys.platform == "darwin" else "xdg-open"
+                subprocess.call([opener, episode['magnet_url']])
 
 
 if __name__ == "__main__":
