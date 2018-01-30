@@ -58,7 +58,7 @@ class HorribleSubsEpisodesScraper(BaseScraper):
             r".* - ([.\da-zA-Z]*) \[(\d*p)\]")
         # grp 1 is 1st ep. of batch, grp 2 is last ep. of batch, grp 3 is res
         self.batch_episodes_data_regex = re.compile(
-            r".* \(([\d]*)-([\d]*)\) \[(\d*p)\]")
+            r".* \((\d*)-(\d*)\) \[(\d*p)\]")
 
         # most recent ep. number used to help determine when we have
         # scraped all episodes available
