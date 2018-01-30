@@ -111,9 +111,9 @@ setup(use_scm_version={'root': directory},
       url=github_url,
       keywords=[],
       # include this if you want this module to have a command line interface
-      # entry_points={
-      #     'console_scripts':
-      #         ['alias_name={}.__main__:func_name'.format(module_name)]},
+      entry_points={
+          'console_scripts':
+              ['hsbd={}.__main__:main'.format(module_name)]},
       install_requires=get_install_requirements(),
       # list of strs https://pypi.python.org/pypi?%3Aaction=list_classifiers
       classifiers=[]
