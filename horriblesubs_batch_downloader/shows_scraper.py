@@ -1,6 +1,4 @@
-import cfscrape
-import requests
-from base_scraper import BaseScraper
+from horriblesubs_batch_downloader.base_scraper import BaseScraper
 from bs4 import BeautifulSoup
 import os
 import json

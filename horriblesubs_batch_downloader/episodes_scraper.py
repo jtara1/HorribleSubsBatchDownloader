@@ -4,8 +4,8 @@ import os
 import re
 from bs4 import BeautifulSoup
 import threading
-from base_scraper import BaseScraper
-from exception import HorribleSubsException, RegexFailedToMatch
+from horriblesubs_batch_downloader.base_scraper import BaseScraper
+from horriblesubs_batch_downloader.exception import HorribleSubsException, RegexFailedToMatch
 
 
 class HorribleSubsEpisodesScraper(BaseScraper):
