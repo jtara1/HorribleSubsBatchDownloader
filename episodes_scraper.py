@@ -5,11 +5,7 @@ import re
 from bs4 import BeautifulSoup
 import threading
 from base_scraper import BaseScraper
-
-
-class RegexFailedToMatch(Exception):
-    """One of the regex used to parse html failed to match anything"""
-    pass
+from exception import HorribleSubsException, RegexFailedToMatch
 
 
 class HorribleSubsEpisodesScraper(BaseScraper):
@@ -18,7 +14,8 @@ class HorribleSubsEpisodesScraper(BaseScraper):
     episodes_url_template = 'http://horriblesubs.info/lib/getshows.php?' \
                             'type={show_type}&showid={show_id}'
     # additional vars: page_number
-    episodes_page_url_template = episodes_url_template+'&nextid={page_number}&_'
+    episodes_page_url_template = \
+        episodes_url_template+'&nextid={page_number}&_'
 
     def __init__(self, show_id=None, show_url=None, verbose=True, debug=False):
         """Get the highest resolution magnet link of each episode
@@ -65,12 +62,15 @@ class HorribleSubsEpisodesScraper(BaseScraper):
 
         # most recent ep. number used to help determine when we have
         # scraped all episodes available
-        last_ep_number = self.get_most_recent_episode_number(url)
-        if self.debug:
-            print("most recent episode number: ", last_ep_number)
-        self.episodes_available = set(range(1, int(last_ep_number) + 1))
+        try:
+            last_ep_number = self.get_most_recent_episode_number(url)
+            if self.debug:
+                print("most recent episode number: ", last_ep_number)
+            self.episodes_available = set(range(1, int(last_ep_number) + 1))
+        except HorribleSubsException:
+            # get last episode number from batches
+            self.episodes_available = None
 
-        # html = self.get_html(url)
         self.all_episodes_acquired = False
         self.threads = []
         self.episodes = []
@@ -82,7 +82,9 @@ class HorribleSubsEpisodesScraper(BaseScraper):
             show_type='batch', show_id=self.show_id)
         # there shouldn't be more than 1 page of batch
         self.parse_batch_episodes(self.get_html(url=batch_episodes_url))
-        self.parse_all_in_parallel()
+
+        if self.episodes_available:
+            self.parse_all_in_parallel()
 
         if self.debug:
             for ep in sorted(
@@ -243,6 +245,9 @@ class HorribleSubsEpisodesScraper(BaseScraper):
 
         episode_div_tag = soup.find(
             name='div', attrs={"class": "release-links"})
+        if episode_div_tag is None:
+            raise HorribleSubsException("there are no individual episodes")
+
         text_tag = episode_div_tag.find(name="i")
         regex_match = re.match(
             pattern=self.episode_data_regex, string=text_tag.string)
