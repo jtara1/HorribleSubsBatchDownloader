@@ -90,7 +90,7 @@ class HorribleSubsEpisodesScraper(BaseScraper):
                     key=lambda d:
                     d['episode_number'][-1]
                     if isinstance(d['episode_number'], list)
-                    else int(d['episode_number'])):
+                    else d['episode_number']):
                 print(ep)
 
     def get_show_id_from_url(self, show_url):
@@ -153,8 +153,9 @@ class HorribleSubsEpisodesScraper(BaseScraper):
                 # regex failed to find a match
                 raise RegexFailedToMatch
 
-            ep_number, vid_res = int(
-                episode_data_match.group(1)), episode_data_match.group(2)
+            # keep ep_number as a string
+            ep_number, vid_res = \
+                episode_data_match.group(1), episode_data_match.group(2)
 
             # skips lower resolutions of an episode already added
             if ep_number in self.episode_numbers_collected:
@@ -212,13 +213,6 @@ class HorribleSubsEpisodesScraper(BaseScraper):
                 episode_range=episode_range,
                 video_resolution=vid_res,
                 magnet_url=magnet_url)
-            # self.episodes.append({
-            #     'episode_number': ep_number,
-            #     'video_resolution': vid_res,
-            #     'magnet_url': magnet_url,
-            # })
-            #
-            # self.episode_numbers_collected.add(ep_number)
 
     def _add_episode(self, episode_number=None, episode_range=None,
                      video_resolution=None, magnet_url=None):
