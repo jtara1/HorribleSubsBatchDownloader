@@ -21,7 +21,7 @@ https://github.com/jtara1/misc_scripts/blob/master/misc_scripts/templates/setup.
 github_user = 'jtara1'
 author = 'James T'
 author_email = 'jtara@tuta.io'
-description = 'Download animes from HorribleSubs'
+description = 'Download episodes of an anime in bulk from HorribleSubs'
 # ------------------------------------------------------------- #
 
 # path to this file but not including this file
@@ -48,7 +48,7 @@ def change_rst_to_md_extension_in_cfg():
     try:
         with open(join(directory, 'setup.cfg'), 'r+') as config:
             text = config.read()
-            text = re.sub('README.rst', 'README.md', text)
+            text = re.sub('README\.rst', 'README.md', text)
             config.seek(0)
             config.write(text)
     except (FileNotFoundError, FileExistsError):
@@ -113,7 +113,8 @@ setup(use_scm_version={'root': directory},
       # include this if you want this module to have a command line interface
       entry_points={
           'console_scripts':
-              ['hsbd={}.__main__:main'.format(module_name)]},
+              ['hsbd={}.__main__:main'
+               .format(module_name.replace('-', '_'))]},
       install_requires=get_install_requirements(),
       # list of strs https://pypi.python.org/pypi?%3Aaction=list_classifiers
       classifiers=[]
