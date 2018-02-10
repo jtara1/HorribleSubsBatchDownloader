@@ -1,3 +1,4 @@
+from pprint import pprint
 import sys
 import subprocess
 import os
@@ -93,7 +94,8 @@ class HorribleSubsEpisodesScraper(BaseScraper):
                     d['episode_number'][-1]
                     if isinstance(d['episode_number'], list)
                     else d['episode_number']):
-                print(ep)
+                pprint(ep)
+                print()
 
     def get_show_id_from_url(self, show_url):
         """Finds the show_id in the html using regex

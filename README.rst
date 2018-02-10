@@ -37,35 +37,25 @@ Modules
 Install
 ~~~~~~~
 
-Use by calling run.py
+Installing as python module is the recommended way to install & use
 
-1. Download / clone this repo
-2. Install required modules with ``pip install -r requirements.txt``
+``pip install --upgrade git+https://github.com/jtara1/horriblesubs_batch_downloader``
 
-Use anywhere from command line
+Or, you could download from pypi via
 
-1. ``pip install horriblesubs-batch-downloader``
+``pip install -U horriblesubs-batch-downloader``
+
 
 Usage
 ~~~~~
 
-Run ``run.py`` to run the program, and optionally enter anime name as
-cli arguments as seen in the 2nd example.
-
-e.g.:
-
-::
-
-    python run.py
-
-or
-
-::
-
-    python run.py one piece
-
-If installed via ``pip``
+where ``one piece`` is the name of the show you want to download
 
 ::
 
     hsbd one piece
+
+
+Note: it will save the shows in the current working directory ($PWD) and
+attempt to load cached info from the HS site so it's better to cd to a directory
+like Downloads first.
