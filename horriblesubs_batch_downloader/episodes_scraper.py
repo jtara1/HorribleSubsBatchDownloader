@@ -12,8 +12,8 @@ from horriblesubs_batch_downloader.exception import HorribleSubsException, Regex
 class HorribleSubsEpisodesScraper(BaseScraper):
 
     # vars in string template: show_type (show or batch) and show_id
-    episodes_url_template = 'http://horriblesubs.info/lib/getshows.php?' \
-                            'type={show_type}&showid={show_id}'
+    episodes_url_template = 'https://horriblesubs.info/api.php?' \
+                            'method=getshows&type={show_type}&showid={show_id}'
     # additional vars: page_number
     episodes_page_url_template = \
         episodes_url_template+'&nextid={page_number}&_'
@@ -69,6 +69,9 @@ class HorribleSubsEpisodesScraper(BaseScraper):
                 print("most recent episode number: ", last_ep_number)
             self.episodes_available = set(range(1, int(last_ep_number) + 1))
         except HorribleSubsException:
+            print('WARN: there was no most recent '
+                  'episode number from non-batch')
+
             # get last episode number from batches
             self.episodes_available = None
 
@@ -271,12 +274,12 @@ class HorribleSubsEpisodesScraper(BaseScraper):
 
 if __name__ == "__main__":
     # standard modern 12-13 ep. anime
-    # scraper = HorribleSubsEpisodesScraper(731)  # 91 days anime
-    # scraper = HorribleSubsEpisodesScraper(show_url='http://horriblesubs.info/shows/91-days/', debug=True)
+    scraper = HorribleSubsEpisodesScraper(731)  # 91 days anime
+    scraper = HorribleSubsEpisodesScraper(show_url='http://horriblesubs.info/shows/91-days/', debug=True)
 
     # anime with extra editions of episodes
     # scraper = HorribleSubsEpisodesScraper(show_url='http://horriblesubs.info/shows/psycho-pass/', debug=True)
 
     # anime with 495 episodes
-    scraper = HorribleSubsEpisodesScraper(show_url='http://horriblesubs.info/shows/naruto-shippuuden', debug=True)
+    # scraper = HorribleSubsEpisodesScraper(show_url='http://horriblesubs.info/shows/naruto-shippuuden', debug=True)
     # scraper.download()

@@ -27,11 +27,11 @@ class ShowSelector(object):
         self.matches = []  # matching shows
         self._desired_show = None  # the show the user wants
 
-        self.process_search_key_word()
-        self.get_matching_show()
+        self._process_search_key_word()
+        self._get_matching_show()
         self._file.close()
 
-    def process_search_key_word(self):
+    def _process_search_key_word(self):
         """Replace spaces with hyphen, lowercase letters, and throw out non-alpha or non-digits"""
         new_word = ""
         self.search_key_word = self.search_key_word.lower().replace(" ", "-")
@@ -44,7 +44,7 @@ class ShowSelector(object):
         if self.debug:
             print("search_key_word = {}".format(new_word))
 
-    def get_matching_show(self):
+    def _get_matching_show(self):
         """Iterates through all the shows and adds each match to self.matches then determines the desired show the user
         wants
         """
