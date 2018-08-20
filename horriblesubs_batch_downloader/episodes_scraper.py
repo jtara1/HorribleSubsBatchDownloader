@@ -1,14 +1,15 @@
-import time
 from pprint import pprint
 import sys
 import subprocess
 import os
 import re
 from bs4 import BeautifulSoup
-import multiprocessing
 from horriblesubs_batch_downloader.base_scraper import BaseScraper
 from horriblesubs_batch_downloader.exception import HorribleSubsException, RegexFailedToMatch
-from jtara1_util import setup_logger
+try:
+    from jtara1_util import setup_logger
+except:
+    from horriblesubs_batch_downloader.setup_logger import setup_logger
 
 
 class HorribleSubsEpisodesScraper(BaseScraper):
@@ -57,10 +58,6 @@ class HorribleSubsEpisodesScraper(BaseScraper):
             print("show_id = {}".format(self.show_id))
             print("url = {}".format(url))
 
-        # regex used to extract episode number(s) and video resolution
-        # grp 1 is ep. number, grp 2 is vid resolution
-        self.episode_data_regex = re.compile(
-            r".* - ([.\da-zA-Z]*) \[(\d*p)\]")
         # grp 1 is 1st ep. of batch, grp 2 is last ep. of batch, grp 3 is res
         self.batch_episodes_data_regex = re.compile(
             r".* \((\d*)-(\d*)\) \[(\d*p)\]")
@@ -82,7 +79,6 @@ class HorribleSubsEpisodesScraper(BaseScraper):
             self.episodes_available = None
 
         self.all_episodes_acquired = False
-        self.processes = []
         self.episodes = []
         self.episode_numbers_collected = set()
         self.episodes_page_number = 0
@@ -123,21 +119,12 @@ class HorribleSubsEpisodesScraper(BaseScraper):
 
         return match.group(1)
 
-    def parse_all_in_parallel(self):
-        next_page_html = self._get_next_page_html(increment_page_number=False)
-
-        while next_page_html != "DONE" and not self.all_episodes_acquired:
-            proc = multiprocessing.Process(
-                name="ep_parse_" + str(self.episodes_page_number),
-                target=self.parse_episodes,
-                args=(next_page_html,)
-            )
-            proc.start()
-            self.processes.append(proc)
-
-            next_page_html = self._get_next_page_html()
-
     def parse_all(self):
+        """Parse all of the episodes available from the current page \n
+        for a show
+
+        :return:
+        """
         next_page_html = self._get_next_page_html(increment_page_number=False)
 
         while next_page_html != "DONE" and not self.all_episodes_acquired:

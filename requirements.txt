@@ -2,3 +2,6 @@ cfscrape
 requests
 bs4
 lxml
+click
+six
+jtara1_util
