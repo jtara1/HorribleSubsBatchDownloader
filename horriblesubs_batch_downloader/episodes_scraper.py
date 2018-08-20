@@ -1,12 +1,14 @@
+import time
 from pprint import pprint
 import sys
 import subprocess
 import os
 import re
 from bs4 import BeautifulSoup
-import threading
+import multiprocessing
 from horriblesubs_batch_downloader.base_scraper import BaseScraper
 from horriblesubs_batch_downloader.exception import HorribleSubsException, RegexFailedToMatch
+from jtara1_util import setup_logger
 
 
 class HorribleSubsEpisodesScraper(BaseScraper):
@@ -31,6 +33,7 @@ class HorribleSubsEpisodesScraper(BaseScraper):
         """
         self.verbose = verbose
         self.debug = debug
+        self.logger = setup_logger('hsbd.episodes_scraper')
 
         # need a show_id or show_url
         if not show_id and not show_url:
@@ -40,7 +43,8 @@ class HorribleSubsEpisodesScraper(BaseScraper):
             self.show_id = self.get_show_id_from_url(show_url)
         # use show_id over show_url if both are given or only show_id is given
         else:
-            if not isinstance(show_id, int) or not show_id.isdigit():
+            show_id = str(show_id)
+            if not show_id.isdigit():
                 raise ValueError("Invalid show_id; expected an integer "
                                  "or string containing an integer")
             self.show_id = show_id
@@ -67,6 +71,8 @@ class HorribleSubsEpisodesScraper(BaseScraper):
             last_ep_number = self.get_most_recent_episode_number(url)
             if self.debug:
                 print("most recent episode number: ", last_ep_number)
+
+            # set of episode numbers available to download
             self.episodes_available = set(range(1, int(last_ep_number) + 1))
         except HorribleSubsException:
             print('WARN: there was no most recent '
@@ -76,7 +82,7 @@ class HorribleSubsEpisodesScraper(BaseScraper):
             self.episodes_available = None
 
         self.all_episodes_acquired = False
-        self.threads = []
+        self.processes = []
         self.episodes = []
         self.episode_numbers_collected = set()
         self.episodes_page_number = 0
@@ -88,7 +94,8 @@ class HorribleSubsEpisodesScraper(BaseScraper):
         self.parse_batch_episodes(self.get_html(url=batch_episodes_url))
 
         if self.episodes_available:
-            self.parse_all_in_parallel()
+            self.parse_all()
+            # self.parse_all_in_parallel()
 
         if self.debug:
             for ep in sorted(
@@ -105,6 +112,8 @@ class HorribleSubsEpisodesScraper(BaseScraper):
 
         :param show_url: url of the HorribleSubs show
         """
+        self.logger.debug('get_show_id_from_url: {}'.format(show_url))
+
         html = self.get_html(show_url)
         show_id_regex = r".*var hs_showid = (\d*)"
         match = re.match(show_id_regex, html, flags=re.DOTALL)
@@ -116,13 +125,23 @@ class HorribleSubsEpisodesScraper(BaseScraper):
 
     def parse_all_in_parallel(self):
         next_page_html = self._get_next_page_html(increment_page_number=False)
+
         while next_page_html != "DONE" and not self.all_episodes_acquired:
-            thread = threading.Thread(
+            proc = multiprocessing.Process(
                 name="ep_parse_" + str(self.episodes_page_number),
                 target=self.parse_episodes,
-                args=(next_page_html,))
-            thread.start()
-            self.threads.append(thread)
+                args=(next_page_html,)
+            )
+            proc.start()
+            self.processes.append(proc)
+
+            next_page_html = self._get_next_page_html()
+
+    def parse_all(self):
+        next_page_html = self._get_next_page_html(increment_page_number=False)
+
+        while next_page_html != "DONE" and not self.all_episodes_acquired:
+            self.parse_episodes(next_page_html)
 
             next_page_html = self._get_next_page_html()
 
@@ -146,31 +165,29 @@ class HorribleSubsEpisodesScraper(BaseScraper):
         soup = BeautifulSoup(html, 'lxml')
 
         all_episodes_divs = soup.find_all(
-            name='div', attrs={'class': 'release-links'})
+            name='div', attrs={'class': 'rls-info-container'})
         # reversed so the highest resolution ep comes first
-        all_episodes_divs = reversed(all_episodes_divs)
+        # all_episodes_divs = reversed(all_episodes_divs)
 
         # iterate through each episode html div
         for episode_div in all_episodes_divs:
-            episode_data_tag = episode_div.find(name='i')
-            episode_data_match = re.match(
-                self.episode_data_regex, episode_data_tag.string)
 
-            if not episode_data_match:
-                # regex failed to find a match
-                raise RegexFailedToMatch
+            label_tag = episode_div.find(name='a', attrs={'class': 'rls-label'})
 
-            # keep ep_number as a string
-            ep_number, vid_res = \
-                episode_data_match.group(1), episode_data_match.group(2)
+            vid_res = label_tag.contents[-1].text
+            ep_number = episode_div.find(name='strong').text
 
             # skips lower resolutions of an episode already added
             if ep_number in self.episode_numbers_collected:
                 continue
 
-            magnet_tag = episode_div.find(
-                name='td', attrs={'class': 'hs-magnet-link'})
-            magnet_url = magnet_tag.a.attrs['href']
+            # all download link tags to all resolutions and sources
+            links = episode_div.find_all(name='div', attrs={'class': 'rls-link'})
+
+            # last one (highest resolution) html tag for magnet link
+            magnet_tag = links[-1].find(
+                name='span', attrs={'class': 'hs-magnet-link'})
+            magnet_url = magnet_tag.next.attrs['href']
 
             self._add_episode(
                 episode_number=ep_number,
@@ -231,12 +248,13 @@ class HorribleSubsEpisodesScraper(BaseScraper):
         :param magnet_url:
         :return:
         """
-        self.episodes.append({
+        episode = {
             'episode_number': episode_range
             if episode_range else episode_number,
             'video_resolution': video_resolution,
             'magnet_url': magnet_url,
-        })
+        }
+        self.episodes.append(episode)
 
         if episode_range:
             self.episode_numbers_collected.update(set(episode_range))
@@ -244,23 +262,19 @@ class HorribleSubsEpisodesScraper(BaseScraper):
             self.episode_numbers_collected.add(episode_number)
         # print(sorted(self.episode_numbers_collected))
 
+        self.logger.debug('added episode: {}'.format(episode))
+
     def get_most_recent_episode_number(self, url):
         html = self.get_html(url)
         soup = BeautifulSoup(html, "lxml")
 
-        episode_div_tag = soup.find(
-            name='div', attrs={"class": "release-links"})
-        if episode_div_tag is None:
+        #
+        episode_tag = soup.find(name='a', attrs={"class": "rls-label"})
+        if episode_tag is None:
             raise HorribleSubsException("there are no individual episodes")
 
-        text_tag = episode_div_tag.find(name="i")
-        regex_match = re.match(
-            pattern=self.episode_data_regex, string=text_tag.string)
-
-        if not regex_match:
-            raise RegexFailedToMatch
-
-        return regex_match.group(1)
+        text_tag = episode_tag.find(name="strong")
+        return text_tag.string
 
     def download(self):
         """Downloads every episode in self.episodes"""
@@ -274,8 +288,8 @@ class HorribleSubsEpisodesScraper(BaseScraper):
 
 if __name__ == "__main__":
     # standard modern 12-13 ep. anime
-    scraper = HorribleSubsEpisodesScraper(731)  # 91 days anime
-    scraper = HorribleSubsEpisodesScraper(show_url='http://horriblesubs.info/shows/91-days/', debug=True)
+    scraper = HorribleSubsEpisodesScraper(show_id=731, debug=True)  # 91 days anime
+    # scraper = HorribleSubsEpisodesScraper(show_url='http://horriblesubs.info/shows/91-days/', debug=True)
 
     # anime with extra editions of episodes
     # scraper = HorribleSubsEpisodesScraper(show_url='http://horriblesubs.info/shows/psycho-pass/', debug=True)
