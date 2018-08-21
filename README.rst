@@ -49,12 +49,11 @@ Or, you could download from pypi via
 Usage
 ~~~~~
 
-where ``one piece`` is the name of the show you want to download
-
 ::
 
     hsbd "one piece"
     hsbd jojo
+    hsbd naruto
 
 
 Note: it will save the shows in the current working directory ($PWD) and

@@ -14,22 +14,27 @@ The version
 
 Author: https://github.com/jtara1
 Source: 
-https://github.com/jtara1/misc_scripts/blob/master/misc_scripts/templates/setup.py
+https://github.com/jtara1/misc_scripts/blob/master/misc_scripts/python_setup_py_template/setup.py
 """
 
 # -------------- Update the following variables --------------- #
 github_user = 'jtara1'
 author = 'James T'
 author_email = 'jtara@tuta.io'
-description = 'Download episodes of an anime in bulk from HorribleSubs'
+description = 'Download all individual episodes of an anime from HorribleSubs easily'
 # ------------------------------------------------------------- #
 
 # path to this file but not including this file
 directory = dirname(abspath(__file__))
+
+# ----------- Additional module specific variables ------------ #
 # get module name from parent folder name
 # assumes the parent folder (repository name) is the same as the module name
 module_name = basename(directory)
 github_url = 'https://github.com/{}/{}'.format(github_user, module_name)
+command_line_alias = 'hsbd'  # console entry point DISABLED by default
+enable_console_entry_point = True
+# ------------------------------------------------------------- #
 
 
 # ------------------------ functions -------------------------- #
@@ -71,17 +76,22 @@ def get_install_requirements():
 def update_cfg_module_name():
     """Replaces the module name in setup.cfg with module_name"""
     try:
-        with open(join(directory, 'setup.cfg'), 'r+') as config:
+        # read
+        with open(join(directory, 'setup.cfg'), 'r') as config:
             text = config.read()
             text = re.sub('name = module_name(_setup_cfg)?',
                           'name = {}'.format(module_name),
                           text)
-            config.seek(0)
+            print('jtar1', text)
+        # write
+        with open(join(directory, 'setup.cfg'), 'w') as config:
             config.write(text)
     except (FileNotFoundError, FileExistsError):
         create_setup_cfg(update_cfg_module_name)
 # -------------------------------------------------------------- #
 
+
+update_cfg_module_name()
 
 # Store text from README.rst or README.md to use in long description and
 # update setup.cfg to point to the correct readme if needed
@@ -98,7 +108,6 @@ except (FileNotFoundError, FileExistsError):
     except (FileExistsError, FileNotFoundError):
         readme = description
 
-update_cfg_module_name()
 
 setup(use_scm_version={'root': directory},
       setup_requires=['setuptools_scm'],
@@ -110,11 +119,14 @@ setup(use_scm_version={'root': directory},
       author_email=author_email,
       url=github_url,
       keywords=[],
-      # include this if you want this module to have a command line interface
+      # where __main__ is the file within the module and main is the type of
+      # the function that is called when command line alias is called
       entry_points={
           'console_scripts':
-              ['hsbd={}.__main__:main'
-               .format(module_name.replace('-', '_'))]},
+              ['{}={}.__main__:main'
+               .format(command_line_alias,
+                       module_name.replace('-', '_'))]
+      } if enable_console_entry_point else {},
       install_requires=get_install_requirements(),
       # list of strs https://pypi.python.org/pypi?%3Aaction=list_classifiers
       classifiers=[]
