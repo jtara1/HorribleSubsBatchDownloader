@@ -53,7 +53,8 @@ where ``one piece`` is the name of the show you want to download
 
 ::
 
-    hsbd one piece
+    hsbd "one piece"
+    hsbd jojo
 
 
 Note: it will save the shows in the current working directory ($PWD) and
