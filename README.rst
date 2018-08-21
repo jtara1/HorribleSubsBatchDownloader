@@ -21,7 +21,7 @@ Features
 Requirements
 ~~~~~~~~~~~~
 
--  Python 2.7 or Python 3
+-  Python 3.5+
 -  ``xdg-open`` if using Unix
 -  Software that can download content from a magnet link (e.g.:
    **transmission**, **tixati**, **BitTorrent**, etc.)
@@ -37,13 +37,13 @@ Modules
 Install
 ~~~~~~~
 
-Installing as python module is the recommended way to install & use
-
-``pip install --upgrade git+https://github.com/jtara1/horriblesubs_batch_downloader``
-
-Or, you could download from pypi via
-
 ``pip install -U horriblesubs-batch-downloader``
+
+or
+
+1. clone this repo
+2. ``cd horriblesubs_batch_downloader``
+3. ``python setup.py install``
 
 
 Usage
