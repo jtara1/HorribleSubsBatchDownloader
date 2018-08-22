@@ -62,7 +62,7 @@ class EpisodesScraper(BaseScraper):
         # most recent ep. number used to help determine when we have
         # scraped all episodes available
         try:
-            last_ep_number = self.get_most_recent_episode_number(url)
+            last_ep_number = self._get_most_recent_episode_number(url)
             if self.debug:
                 print("most recent episode number: ", last_ep_number)
 
@@ -84,20 +84,25 @@ class EpisodesScraper(BaseScraper):
         batch_episodes_url = self.episodes_url_template.format(
             show_type='batch', show_id=self.show_id)
         # there shouldn't be more than 1 page of batch
-        self.parse_batch_episodes(self.get_html(url=batch_episodes_url))
+        self._parse_batch_episodes(self.get_html(url=batch_episodes_url))
 
-        if self.episodes_available:
+        # there's more episodes available that haven't been parsed for
+        # magnet url from batch episodes
+        if self.episodes_available != self.episode_numbers_collected and \
+                self.episodes_available:
             self.parse_all()
-            # self.parse_all_in_parallel()
 
         if self.debug:
-            for ep in sorted(
-                    self.episodes,
-                    key=lambda d:
-                    d['episode_number'][-1]
-                    if isinstance(d['episode_number'], list)
-                    else d['episode_number']):
-                pprint(ep)
+            sorted_episodes = sorted(
+                self.episodes,
+                key=lambda episode_info:
+                episode_info['episode_number'][-1]
+                if isinstance(episode_info['episode_number'], list)
+                else int(episode_info['episode_number'])
+            )
+
+            for episode in sorted_episodes:
+                pprint(episode)
                 print()
 
     def get_show_id_from_url(self, show_url):
@@ -117,7 +122,7 @@ class EpisodesScraper(BaseScraper):
         return match.group(1)
 
     def parse_all(self):
-        """Parse all of the episodes available from the current page \n
+        """Parse all of the episodes available from the current page
         for a show
 
         :return:
@@ -125,7 +130,7 @@ class EpisodesScraper(BaseScraper):
         next_page_html = self._get_next_page_html(increment_page_number=False)
 
         while next_page_html != "DONE" and not self.all_episodes_acquired:
-            self.parse_episodes(next_page_html)
+            self._parse_episodes(next_page_html)
 
             next_page_html = self._get_next_page_html()
 
@@ -141,10 +146,9 @@ class EpisodesScraper(BaseScraper):
         )
         return next_page_html
 
-    def parse_episodes(self, html):
-        """Sample of what regex will attempt to match (show and batch):
-            Naruto Shippuuden - 495 [1080p]
-            Naruto Shippuuden (80-426) [1080p]
+    def _parse_episodes(self, html):
+        """Parses episode info and magnet urls from html from request from
+        link from class variable
         """
         soup = BeautifulSoup(html, 'lxml')
 
@@ -181,41 +185,33 @@ class EpisodesScraper(BaseScraper):
         if self.episode_numbers_collected == self.episodes_available:
             self.all_episodes_acquired = True
 
-    def parse_batch_episodes(self, html):
+    def _parse_batch_episodes(self, html):
+        """Parse the magnet links, episode numbers, and vid resolutions of
+        episodes contained in their batches from html from request formed by
+        class static variable
+
+        :param html:
+        :return:
+        """
         soup = BeautifulSoup(html, 'lxml')
 
         all_episodes_divs = soup.find_all(
-            name='div', attrs={'class': 'release-links'})
-
-        # reversed so the highest resolution ep comes first
-        all_episodes_divs = reversed(all_episodes_divs)
+            name='a', attrs={'class': 'rls-label'})
 
         # iterate through each episode html div
         for episode_div in all_episodes_divs:
-            episode_data_tag = episode_div.find(name='i')
-            episode_data_match = re.match(
-                self.batch_episodes_data_regex, episode_data_tag.string)
-
-            if not episode_data_match:
-                # regex failed to find a match
-                raise RegexFailedToMatch
-
-            first_ep_number = episode_data_match.group(1)
-            last_ep_numb = episode_data_match.group(2)
-            vid_res = episode_data_match.group(3)
+            episode_range = episode_div.find(name='strong').text
+            first_ep_number, last_ep_numb = episode_range.split('-')
+            vid_res = episode_div.contents[-1].text
 
             episode_range = list(range(
                 int(first_ep_number), int(last_ep_numb) + 1))
 
-            # skips lower resolutions
-            if True in map(
-                    lambda d: d["episode_number"] == episode_range,
-                    self.episodes):
-                continue
+            links_div = episode_div.next_sibling
 
-            magnet_tag = episode_div.find(
-                name='td', attrs={'class': 'hs-magnet-link'})
-            magnet_url = magnet_tag.a.attrs['href']
+            # highest res is the last one by their convention
+            highest_res_div = links_div.contents[-1]
+            magnet_url = highest_res_div.find(name='a').attrs['href']
 
             self._add_episode(
                 episode_range=episode_range,
@@ -233,8 +229,7 @@ class EpisodesScraper(BaseScraper):
         :return:
         """
         episode = {
-            'episode_number': episode_range
-            if episode_range else episode_number,
+            'episode_number': episode_range or episode_number,
             'video_resolution': video_resolution,
             'magnet_url': magnet_url,
         }
@@ -248,11 +243,10 @@ class EpisodesScraper(BaseScraper):
 
         self.logger.debug('added episode: {}'.format(episode))
 
-    def get_most_recent_episode_number(self, url):
+    def _get_most_recent_episode_number(self, url):
         html = self.get_html(url)
         soup = BeautifulSoup(html, "lxml")
 
-        #
         episode_tag = soup.find(name='a', attrs={"class": "rls-label"})
         if episode_tag is None:
             raise HorribleSubsException("there are no individual episodes")
@@ -272,12 +266,16 @@ class EpisodesScraper(BaseScraper):
 
 if __name__ == "__main__":
     # standard modern 12-13 ep. anime
-    scraper = EpisodesScraper(show_id=731, debug=True)  # 91 days anime
-    # scraper = HorribleSubsEpisodesScraper(show_url='http://horriblesubs.info/shows/91-days/', debug=True)
+    # scraper = EpisodesScraper(show_id=731, debug=True)  # 91 days anime
+    # scraper = EpisodesScraper(show_url='http://horriblesubs.info/shows/91-days/', debug=True)
 
     # anime with extra editions of episodes
-    # scraper = HorribleSubsEpisodesScraper(show_url='http://horriblesubs.info/shows/psycho-pass/', debug=True)
+    # scraper = EpisodesScraper(show_url='http://horriblesubs.info/shows/psycho-pass/', debug=True)
+
+    # anime with 175 episodes all in 1 batch
+    scraper = EpisodesScraper(show_url='https://horriblesubs.info/shows/fairy-tail/', debug=True)
+    # scraper.download()
 
     # anime with 495 episodes
-    # scraper = HorribleSubsEpisodesScraper(show_url='http://horriblesubs.info/shows/naruto-shippuuden', debug=True)
+    # scraper = EpisodesScraper(show_url='http://horriblesubs.info/shows/naruto-shippuuden', debug=True)
     # scraper.download()
