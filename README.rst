@@ -26,14 +26,6 @@ Requirements
 -  Software that can download content from a magnet link (e.g.:
    **transmission**, **tixati**, **BitTorrent**, etc.)
 
-Modules
-'''''''
-
--  cfscrape
--  requests
--  bs4
--  lxml
-
 Install
 ~~~~~~~
 
@@ -49,11 +41,15 @@ or
 Usage
 ~~~~~
 
+Here's some examples. There'd actually be prompts for the user to go through
+for each one to select the desired show.
+
 ::
 
     hsbd "one piece"
     hsbd jojo
     hsbd naruto
+    hsbd --help
 
 
 Note: it will save the shows in the current working directory ($PWD) and
