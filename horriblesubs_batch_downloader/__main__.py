@@ -3,7 +3,7 @@ from six.moves import input
 
 from horriblesubs_batch_downloader.show_selector import ShowSelector
 from horriblesubs_batch_downloader.shows_scraper import ShowsScraper
-from horriblesubs_batch_downloader.episodes_scraper import EpisodeScraper
+from horriblesubs_batch_downloader.episodes_scraper import EpisodesScraper
 
 
 def main(search_word, cache_dir, download):
@@ -25,13 +25,11 @@ def main(search_word, cache_dir, download):
     selector = ShowSelector(shows_file, search_word)
     show_url = selector.get_desired_show_url()
 
-    ep_scraper = None
+    # scraping all the episodes for the show
+    ep_scraper = EpisodesScraper(show_url=show_url, debug=True)
 
     if download and input('Press [enter] to download {}'.format(
             selector.desired_show['name'])) == '':
-
-        # scraping all the episodes for the show
-        ep_scraper = EpisodeScraper(show_url=show_url, debug=True)
         ep_scraper.download()
 
     return scraper, selector, ep_scraper
@@ -39,8 +37,10 @@ def main(search_word, cache_dir, download):
 
 @click.command()
 @click.argument('search_word')
-@click.option('--cache-dir', type=click.STRING, default='')
-@click.option('--download', type=click.BOOL, default=True)
+@click.option('--cache-dir', type=click.STRING, default='',
+              help='directory in which the list of shows is cached')
+@click.option('--download/--no-download', default=True,
+              help='flag to prevent downloading (opening of magnet links)')
 def main_cli_wrapped(search_word, cache_dir, download):
     main(search_word, cache_dir, download)
 
