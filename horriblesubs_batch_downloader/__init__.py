@@ -1,0 +1,1 @@
+from horriblesubs_batch_downloader.__main__ import main

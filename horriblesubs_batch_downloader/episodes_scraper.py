@@ -6,13 +6,10 @@ import re
 from bs4 import BeautifulSoup
 from horriblesubs_batch_downloader.base_scraper import BaseScraper
 from horriblesubs_batch_downloader.exception import HorribleSubsException, RegexFailedToMatch
-try:
-    from jtara1_util import setup_logger
-except:
-    from horriblesubs_batch_downloader.setup_logger import setup_logger
+from horriblesubs_batch_downloader.setup_logger import setup_logger
 
 
-class HorribleSubsEpisodesScraper(BaseScraper):
+class EpisodeScraper(BaseScraper):
 
     # vars in string template: show_type (show or batch) and show_id
     episodes_url_template = 'https://horriblesubs.info/api.php?' \
@@ -275,7 +272,7 @@ class HorribleSubsEpisodesScraper(BaseScraper):
 
 if __name__ == "__main__":
     # standard modern 12-13 ep. anime
-    scraper = HorribleSubsEpisodesScraper(show_id=731, debug=True)  # 91 days anime
+    scraper = EpisodeScraper(show_id=731, debug=True)  # 91 days anime
     # scraper = HorribleSubsEpisodesScraper(show_url='http://horriblesubs.info/shows/91-days/', debug=True)
 
     # anime with extra editions of episodes

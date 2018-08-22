@@ -25,7 +25,7 @@ class ShowSelector(object):
         self._file = open(shows_file)
         self.search_key_word = search_key_word
         self.matches = []  # matching shows
-        self._desired_show = None  # the show the user wants
+        self.desired_show = None  # the show the user wants
 
         self._process_search_key_word()
         self._get_matching_show()
@@ -56,9 +56,9 @@ class ShowSelector(object):
 
         # determine which show the user wanted
         if len(self.matches) > 1:
-            self._desired_show = self._select_a_show_from_matches()
+            self.desired_show = self._select_a_show_from_matches()
         elif len(self.matches) == 1:
-            self._desired_show = self.matches[0]
+            self.desired_show = self.matches[0]
         else:
             raise NoMatchingShowException(
                 "search key word, {}, not found in the list of shows".format(self.search_key_word))
@@ -77,12 +77,12 @@ class ShowSelector(object):
             return self.matches[int(user_input)]
 
     def get_desired_show_url(self):
-        return self.horriblesubs_url + self._desired_show['url_extension']
+        return self.horriblesubs_url + self.desired_show['url_extension']
 
 
 if __name__ == "__main__":
     import os
     file_path = os.path.join(os.getcwd(), 'tmp/shows.txt')
     proc = ShowSelector(file_path, 'jojo')
-    print(proc._desired_show)
+    print(proc.desired_show)
     print(proc.get_desired_show_url())
