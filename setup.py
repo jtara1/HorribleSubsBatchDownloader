@@ -123,7 +123,7 @@ setup(use_scm_version={'root': directory},
       # the function that is called when command line alias is called
       entry_points={
           'console_scripts':
-              ['{}={}.__main__:main'
+              ['{}={}.__main__:main_cli_wrapped'
                .format(command_line_alias,
                        module_name.replace('-', '_'))]
       } if enable_console_entry_point else {},
