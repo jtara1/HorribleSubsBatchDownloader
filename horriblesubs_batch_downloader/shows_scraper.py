@@ -43,7 +43,7 @@ class ShowsScraper(BaseScraper):
 
         return shows
 
-    def save_shows_to_file(self, directory=None):
+    def save_shows_to_file(self, directory=os.getcwd()):
         """
 
         :param directory: dir that cotains file of serialized list of shows
@@ -52,13 +52,10 @@ class ShowsScraper(BaseScraper):
         shows
         """
         # default save path
-        if not directory or not os.path.isdir(directory):
-            file = os.path.join(os.getcwd(), 'tmp/shows.json')
+        temp_dir = os.path.join(directory, 'tmp')
+        os.makedirs(temp_dir, exist_ok=True)
 
-        # given save path with filename included in path
-        else:
-            file = os.path.join(directory, 'shows.json')
-
+        file = os.path.join(temp_dir, 'shows.json')
         with open(file, 'w') as f:
             f.write(json.dumps(self.shows))
 
