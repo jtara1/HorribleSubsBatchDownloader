@@ -118,7 +118,7 @@ class EpisodesScraper(BaseScraper):
             
 
     def _get_episode_index(self, r):
-        return tuple(i + 1 for i in range(len(self.episodes)) if self._compute_episode_value(self.episodes[i].get("episode_number")) == self._compute_episode_value(r[0]) or self._compute_episode_value(self.episodes[i].get("episode_number")) == self._compute_episode_value(r[1]))
+        return sorted(tuple(i + 1 for i in range(len(self.episodes)) if self._compute_episode_value(self.episodes[i].get("episode_number")) == self._compute_episode_value(r[0]) or self._compute_episode_value(self.episodes[i].get("episode_number")) == self._compute_episode_value(r[1])))
 
     def _compute_episode_value(self, ev):
         try:
