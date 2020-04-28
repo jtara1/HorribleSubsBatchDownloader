@@ -41,7 +41,7 @@ def main(search_word, cache_dir, download, r, qual):
               help='directory in which the list of shows is cached')
 @click.option('--download/--no-download', default=True,
               help='flag to prevent downloading (opening of magnet links)')
-@click.option('--range', "--r", "r", nargs=2, default=(None, None), type=int,
+@click.option('--range', "--r", "r", nargs=2, default=(None, None), type=str,
               help='sets a range of files to download')
 @click.option('--quality', "--q", "qual", default=2, type=int,
               help='sets quality of file to download. can use 0, 1, 2 for 480, 720, and 1080p respectively.')

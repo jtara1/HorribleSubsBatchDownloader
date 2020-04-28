@@ -102,14 +102,32 @@ class EpisodesScraper(BaseScraper):
                 key=lambda episode_info:
                 episode_info['episode_number'][-1]
                 if isinstance(episode_info['episode_number'], list)
-                else float(episode_info['episode_number'])
-            )[r[0] - 1:r[1]]
+                else self._compute_episode_value(episode_info['episode_number'])
+            )
 
-            for episode in sorted_episodes if not r else sorted_episodes:
+            self.episodes = sorted_episodes
+
+            if r:
+                r = self._get_episode_index(r)
+                sorted_episodes = sorted_episodes[r[0] - 1:r[1]]
+
+            for episode in sorted_episodes:
                 pprint(episode)
                 print()
 
-            self.episodes = sorted_episodes
+            
+
+    def _get_episode_index(self, r):
+        return tuple(i + 1 for i in range(len(self.episodes)) if self._compute_episode_value(self.episodes[i].get("episode_number")) == self._compute_episode_value(r[0]) or self._compute_episode_value(self.episodes[i].get("episode_number")) == self._compute_episode_value(r[1]))
+
+    def _compute_episode_value(self, ev):
+        try:
+            nuev = (float(ev),)
+        except:
+            m = re.search(r"\d+", ev)
+            nuev = (float(ev[m.start():m.end()]),) + tuple(ord(x) for x in ev[m.end():]) 
+
+        return nuev
 
     def get_show_id_from_url(self, show_url):
         """Finds the show_id in the html using regex
@@ -262,7 +280,7 @@ class EpisodesScraper(BaseScraper):
 
     def download(self, r):
         """Downloads every episode in self.episodes"""
-        for episode in self.episodes if r else self.episodes:
+        for episode in self.episodes:
             if sys.platform == "win32" or sys.platform == "cygwin":
                 os.startfile(episode['magnet_url'])
             else:
