@@ -97,7 +97,7 @@ class EpisodesScraper(BaseScraper):
             self.parse_all(qual)
 
         if self.debug:
-            sorted_episodes = sorted(
+            self.episodes = sorted(
                 self.episodes,
                 key=lambda episode_info:
                 episode_info['episode_number'][-1]
@@ -105,20 +105,27 @@ class EpisodesScraper(BaseScraper):
                 else self._compute_episode_value(episode_info['episode_number'])
             )
 
-            self.episodes = sorted_episodes
-
             if r:
                 r = self._get_episode_index(r)
-                sorted_episodes = sorted_episodes[r[0] - 1:r[1]]
+                    
+                self.episodes = self.episodes[r[0] - 1:r[1]]
 
-            for episode in sorted_episodes:
+            for episode in self.episodes:
                 pprint(episode)
                 print()
 
             
 
     def _get_episode_index(self, r):
-        return sorted(tuple(i + 1 for i in range(len(self.episodes)) if self._compute_episode_value(self.episodes[i].get("episode_number")) == self._compute_episode_value(r[0]) or self._compute_episode_value(self.episodes[i].get("episode_number")) == self._compute_episode_value(r[1])))
+        nur = sorted(tuple(i + 1 for i in range(len(self.episodes)) if self._compute_episode_value(self.episodes[i].get("episode_number")) == self._compute_episode_value(r[0]) or self._compute_episode_value(self.episodes[i].get("episode_number")) == self._compute_episode_value(r[1])))
+        if len(r) < 2 and r[0] != r[1]:
+            print("Range was invalid! Defaulting...")
+            nur = (1, len(self.episodes))
+        elif r[0] == r[1]:
+            nur = nur * 2
+
+        return nur
+
 
     def _compute_episode_value(self, ev):
         try:
@@ -186,7 +193,7 @@ class EpisodesScraper(BaseScraper):
 
             label_tag = episode_div.find(name='a', attrs={'class': 'rls-label'})
 
-            vid_res = label_tag.contents[-3 + qual].text
+            
             ep_number = episode_div.find(name='strong').text
 
             # skips lower resolutions of an episode already added
@@ -196,10 +203,14 @@ class EpisodesScraper(BaseScraper):
             # all download link tags to all resolutions and sources
             links = episode_div.find_all(name='div', attrs={'class': 'rls-link'})
 
+            resolution = -len(links) + qual if qual != len(links) else -1
+
             # last one (highest resolution) html tag for magnet link
-            magnet_tag = links[-3 + qual].find(
+            magnet_tag = links[resolution].find(
                 name='span', attrs={'class': 'hs-magnet-link'})
             magnet_url = magnet_tag.next.attrs['href']
+
+            vid_res = label_tag.contents[resolution].text
 
             self._add_episode(
                 episode_number=ep_number,
