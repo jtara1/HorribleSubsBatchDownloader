@@ -206,7 +206,7 @@ class EpisodesScraper(BaseScraper):
             # all download link tags to all resolutions and sources
             links = episode_div.find_all(name='div', attrs={'class': 'rls-link'})
 
-            resolution = -len(links) + quality if quality != len(links) else -1
+            resolution = -len(links) + quality if quality and quality != len(links) else -1
 
             # last one (highest resolution) html tag for magnet link
             magnet_tag = links[resolution].find(
