@@ -311,7 +311,7 @@ if __name__ == "__main__":
     # scraper = EpisodesScraper(show_url='http://horriblesubs.info/shows/psycho-pass/', debug=True)
 
     # anime with 175 episodes all in 1 batch
-    scraper = EpisodesScraper(show_url='https://horriblesubs.info/shows/fairy-tail/', debug=True)
+    scraper = EpisodesScraper(show_url='https://horriblesubs.info/shows/fairy-tail/', debug=True, ep_range=(10, 12))
     # scraper.download()
 
     # anime with 495 episodes

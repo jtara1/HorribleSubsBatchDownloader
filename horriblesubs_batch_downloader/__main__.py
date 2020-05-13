@@ -6,7 +6,7 @@ from horriblesubs_batch_downloader.shows_scraper import ShowsScraper
 from horriblesubs_batch_downloader.episodes_scraper import EpisodesScraper
 
 
-def main(search_word, cache_dir, download, range, quality):
+def main(search_word, cache_dir='', download=True, ep_range=None, quality=None):
     """Entry point to run the program. Scrapes the names and links to all the
     shows they have. Uses the user's give search_word to select a show.
     Scrapes the magnet links for the highest resolution episodes for the show.
@@ -14,7 +14,7 @@ def main(search_word, cache_dir, download, range, quality):
     :param search_word: <str> the name of the show the user wants to download
     :param download: <bool> continue to download once the show is selected
     and the episodes are scraped
-    :param range:
+    :param ep_range:
     :param quality:
     :return: <ShowScraper, ShowSelector, EpisodesScraper> tuple of objects
     """
@@ -28,11 +28,11 @@ def main(search_word, cache_dir, download, range, quality):
     show_url = selector.get_desired_show_url()
 
     # scraping all the episodes for the show
-    ep_scraper = EpisodesScraper(show_url=show_url, debug=True, range=range, quality=quality)
+    ep_scraper = EpisodesScraper(show_url=show_url, debug=True, ep_range=ep_range, quality=quality)
 
     if download and input('Press [enter] to download {}'.format(
             selector.desired_show['name'])) == '':
-        ep_scraper.download(range)
+        ep_scraper.download(ep_range)
 
     return scraper, selector, ep_scraper
 
