@@ -18,7 +18,7 @@ class EpisodesScraper(BaseScraper):
     episodes_page_url_template = \
         episodes_url_template+'&nextid={page_number}&_'
 
-    def __init__(self, show_id=None, show_url=None, verbose=True, debug=False, r=None, qual=None):
+    def __init__(self, show_id=None, show_url=None, verbose=True, debug=False, ep_range=None, quality=None):
         """Get the highest resolution magnet link of each episode
         of a show from HorribleSubs given a show id
 
@@ -28,6 +28,8 @@ class EpisodesScraper(BaseScraper):
             (e.g.: http://horriblesubs.info/shows/91-days)
         :param verbose: if True prints additional information
         :param debug: if True prints additional more information
+        :param ep_range:
+        :param quality:
         """
         self.verbose = verbose
         self.debug = debug
@@ -66,8 +68,9 @@ class EpisodesScraper(BaseScraper):
             if self.debug:
                 print("most recent episode number: ", last_ep_number)
             # print(last_ep_number, r[1], type(r[1]), type(last_ep_number))
-            if r[1] == int(last_ep_number):
-                r = (r[0], int(last_ep_number) + 1)
+            if ep_range:
+                if ep_range[1] == int(last_ep_number):
+                    ep_range = (ep_range[0], int(last_ep_number) + 1)
             # set of episode numbers available to download
             self.episodes_available = set(range(1, int(last_ep_number) + 1))
         except HorribleSubsException:
@@ -94,7 +97,7 @@ class EpisodesScraper(BaseScraper):
         # magnet url from batch episodes
         if self.episodes_available != self.episode_numbers_collected and \
                 self.episodes_available:
-            self.parse_all(qual)
+            self.parse_all(quality)
 
         if self.debug:
             self.episodes = sorted(
@@ -105,10 +108,10 @@ class EpisodesScraper(BaseScraper):
                 else self._compute_episode_value(episode_info['episode_number'])
             )
 
-            if r:
-                r = self._get_episode_index(r)
+            if ep_range:
+                ep_range = self._get_episode_index(ep_range)
                     
-                self.episodes = self.episodes[r[0] - 1:r[1]]
+                self.episodes = self.episodes[ep_range[0] - 1:ep_range[1]]
 
             for episode in self.episodes:
                 pprint(episode)
@@ -152,7 +155,7 @@ class EpisodesScraper(BaseScraper):
 
         return match.group(1)
 
-    def parse_all(self, qual=None):
+    def parse_all(self, quality=None):
         """Parse all of the episodes available from the current page
         for a show
 
@@ -161,7 +164,7 @@ class EpisodesScraper(BaseScraper):
         next_page_html = self._get_next_page_html(increment_page_number=False)
 
         while next_page_html != "DONE" and not self.all_episodes_acquired:
-            self._parse_episodes(next_page_html, qual)
+            self._parse_episodes(next_page_html, quality)
 
             next_page_html = self._get_next_page_html()
 
@@ -177,7 +180,7 @@ class EpisodesScraper(BaseScraper):
         )
         return next_page_html
 
-    def _parse_episodes(self, html, qual=None):
+    def _parse_episodes(self, html, quality=None):
         """Parses episode info and magnet urls from html from request from
         link from class variable
         """
@@ -203,7 +206,7 @@ class EpisodesScraper(BaseScraper):
             # all download link tags to all resolutions and sources
             links = episode_div.find_all(name='div', attrs={'class': 'rls-link'})
 
-            resolution = -len(links) + qual if qual != len(links) else -1
+            resolution = -len(links) + quality if quality != len(links) else -1
 
             # last one (highest resolution) html tag for magnet link
             magnet_tag = links[resolution].find(
@@ -314,3 +317,4 @@ if __name__ == "__main__":
     # anime with 495 episodes
     # scraper = EpisodesScraper(show_url='http://horriblesubs.info/shows/naruto-shippuuden', debug=True)
     # scraper.download()
+    a = 1
