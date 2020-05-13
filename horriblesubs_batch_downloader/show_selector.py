@@ -50,7 +50,7 @@ class ShowSelector(object):
         """
         all_shows = json.load(self._file)
         for show in all_shows:
-            print(show)
+            # print(show)
             if 'url_extension' in show and self.search_key_word in show['url_extension']:
                 self.matches.append(show)
 

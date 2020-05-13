@@ -52,7 +52,7 @@ class ShowsScraper(BaseScraper):
         shows
         """
         # default save path
-        temp_dir = os.path.join(directory, 'tmp')
+        temp_dir = os.path.join(directory or os.getcwd(), 'tmp')
         os.makedirs(temp_dir, exist_ok=True)
 
         file = os.path.join(temp_dir, 'shows.json')
