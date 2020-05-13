@@ -117,18 +117,25 @@ class EpisodesScraper(BaseScraper):
                 pprint(episode)
                 print()
 
-            
+    def _get_episode_index(self, desired_range):
+        range_start = self._compute_episode_value(desired_range[0])
+        range_end = self._compute_episode_value(desired_range[1])
 
-    def _get_episode_index(self, r):
-        nur = sorted(tuple(i + 1 for i in range(len(self.episodes)) if self._compute_episode_value(self.episodes[i].get("episode_number")) == self._compute_episode_value(r[0]) or self._compute_episode_value(self.episodes[i].get("episode_number")) == self._compute_episode_value(r[1])))
-        if len(r) < 2 and r[0] != r[1]:
-            print("Range was invalid! Defaulting...")
+        nur = []
+        for i, episode in enumerate(self.episodes, 1):
+            ep_value = self._compute_episode_value(episode.get("episode_number"))
+            if ep_value == range_start or ep_value == range_end:
+                nur.append(i)
+
+        nur = sorted(tuple(nur))
+
+        if len(desired_range) < 2 and desired_range[0] != desired_range[1]:
+            self.logger.debug("Range was invalid! Defaulting...")
             nur = (1, len(self.episodes))
-        elif r[0] == r[1]:
+        elif desired_range[0] == desired_range[1]:
             nur = nur * 2
 
         return nur
-
 
     def _compute_episode_value(self, ev):
         try:
