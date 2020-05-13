@@ -12,6 +12,7 @@ def main(search_word, cache_dir='', download=True, ep_range=None, quality=None):
     Scrapes the magnet links for the highest resolution episodes for the show.
 
     :param search_word: <str> the name of the show the user wants to download
+    :param cache_dir: <str|None> defaults to $PWD (os.getcwd())
     :param download: <bool> continue to download once the show is selected
     and the episodes are scraped
     :param ep_range:
@@ -43,12 +44,12 @@ def main(search_word, cache_dir='', download=True, ep_range=None, quality=None):
               help='directory in which the list of shows is cached')
 @click.option('--download/--no-download', default=True,
               help='flag to prevent downloading (opening of magnet links)')
-@click.option('--range', "--r", "range", nargs=2, default=(None, None), type=str,
+@click.option('--range', "--r", "ep_range", nargs=2, default=(None, None), type=str,
               help='sets a range of files to download')
 @click.option('--quality', "--q", "quality", default=2, type=int,
               help='sets quality of file to download. can use 0, 1, 2 for 480, 720, and 1080p respectively.')
-def main_cli_wrapped(search_word, cache_dir, download, r, qual):
-    main(search_word, cache_dir, download, r, qual)
+def main_cli_wrapped(search_word, cache_dir, download, ep_range, quality):
+    main(search_word, cache_dir, download, ep_range, quality)
 
 
 if __name__ == '__main__':
